@@ -25,27 +25,45 @@ require('./config/passport');
 
 const app = express();
 
-// Middleware
+/* =======================
+   Middleware
+======================= */
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
 ];
 
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce')
-  .then(() => console.log('✅ MongoDB Connected Successfully'))
-  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
+/* =======================
+   MongoDB Atlas Connection
+======================= */
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI is missing in .env file');
+  process.exit(1);
+}
 
-// API Routes
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB Atlas Connected Successfully'))
+  .catch((err) => {
+    console.error('❌ MongoDB Connection Error:', err);
+    process.exit(1);
+  });
+
+/* =======================
+   API Routes
+======================= */
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
@@ -55,12 +73,20 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 
-// Health check route
+/* =======================
+   Health Check
+======================= */
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.json({
+    status: 'OK',
+    message: 'Server is running',
+    environment: process.env.NODE_ENV || 'development',
+  });
 });
 
-// Error handling middleware
+/* =======================
+   Error Handling
+======================= */
 app.use(errorHandler);
 
 // 404 handler

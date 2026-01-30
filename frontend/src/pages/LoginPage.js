@@ -13,6 +13,7 @@ const LoginPage = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
 
@@ -29,7 +30,9 @@ const LoginPage = () => {
       toast.error(error);
     }
   }, [error]);
-
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:5000/api/auth/google';
+  };
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -57,7 +60,7 @@ const LoginPage = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-8">
-        {/* Google Login */}
+          {/* Google Login */}
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -93,7 +96,7 @@ const LoginPage = () => {
               </span>
             </div>
           </div>
-          
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
