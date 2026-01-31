@@ -8,6 +8,7 @@ import { getWishlist } from './store/slices/wishlistSlice';
 // Layouts
 import MainLayout from './components/layouts/MainLayout';
 import AdminLayout from './components/layouts/AdminLayout';
+import ShipperLayout from './components/layouts/ShipperLayout';
 
 // Public Pages
 import HomePage from './pages/HomePage';
@@ -35,9 +36,15 @@ import AdminCategories from './pages/admin/Categories';
 import AdminOrders from './pages/admin/Orders';
 import AdminUsers from './pages/admin/Users';
 
+// Shipper Pages
+import ShipperDashboard from './pages/shipper/Dashboard';
+import ShipperOrders from './pages/shipper/Orders';
+import ShipperRoutePage from './pages/shipper/Route';
+
 // Guards
 import PrivateRoute from './components/guards/PrivateRoute';
 import AdminRoute from './components/guards/AdminRoute';
+import ShipperRoute from './components/guards/ShipperRoute';
 import GuestRoute from './components/guards/GuestRoute';
 
 function App() {
@@ -97,6 +104,15 @@ function App() {
           <Route path="categories" element={<AdminCategories />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="users" element={<AdminUsers />} />
+        </Route>
+      </Route>
+
+      {/* Shipper Routes */}
+      <Route element={<ShipperRoute />}>
+        <Route path="/shipper" element={<ShipperLayout />}>
+          <Route index element={<ShipperDashboard />} />
+          <Route path="orders" element={<ShipperOrders />} />
+          <Route path="route" element={<ShipperRoutePage />} />
         </Route>
       </Route>
     </Routes>

@@ -54,6 +54,16 @@ const admin = (req, res, next) => {
   }
 };
 
+// Shipper middleware
+const shipper = (req, res, next) => {
+  if (req.user && req.user.role === 'shipper') {
+    next();
+  } else {
+    res.status(403);
+    throw new Error('Not authorized as shipper');
+  }
+};
+
 // Optional auth - doesn't fail if no token
 const optionalAuth = asyncHandler(async (req, res, next) => {
   let token;
@@ -101,6 +111,7 @@ const verifyRefreshToken = (token) => {
 module.exports = {
   protect,
   admin,
+  shipper,
   optionalAuth,
   generateAccessToken,
   generateRefreshToken,

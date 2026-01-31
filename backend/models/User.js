@@ -31,8 +31,15 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'admin', 'shipper'],
       default: 'user',
+    },
+    shipperInfo: {
+      vehicleType: { type: String },
+      licensePlate: { type: String },
+      isVerified: { type: Boolean, default: false },
+      rating: { type: Number, default: 5, min: 0, max: 5 },
+      totalDeliveries: { type: Number, default: 0 },
     },
     avatar: {
       type: String,
