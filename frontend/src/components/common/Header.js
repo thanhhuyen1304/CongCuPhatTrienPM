@@ -151,7 +151,7 @@ const Header = () => {
               className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
             >
               <ShoppingCartIcon className="h-6 w-6" />
-              {cartItemsCount > 0 && (
+              {isAuthenticated && cartItemsCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItemsCount}
                 </span>
