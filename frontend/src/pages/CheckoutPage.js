@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createOrder } from '../store/slices/orderSlice';
@@ -68,6 +69,24 @@ const CheckoutPage = () => {
     navigate('/cart');
     return null;
   }
+
+  // Thanh toán VNPay
+  const handleVnpayPayment = async () => {
+    try {
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/vnpay/create_payment_url`,
+        {},
+        { withCredentials: true }
+      );
+      if (res.data && res.data.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      } else {
+        toast.error('Không lấy được link thanh toán VNPay');
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tạo thanh toán VNPay');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -205,6 +224,14 @@ const CheckoutPage = () => {
                     <span className="ml-3 font-medium">{method.label}</span>
                   </label>
                 ))}
+                {/* Nút thanh toán VNPay */}
+                <button
+                  type="button"
+                  onClick={handleVnpayPayment}
+                  className="w-full mt-2 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
+                >
+                  Thanh toán qua VNPay
+                </button>
               </div>
             </div>
 
