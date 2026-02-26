@@ -18,31 +18,45 @@ exports.createVnpayPayment = async (req, res) => {
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
+    
     // Tổng tiền
     const amount = Math.round(cart.totalPrice) * 100; // VNPay dùng đơn vị VND * 100
+    
+    if (amount <= 0 || isNaN(amount)) {
+      return res.status(400).json({ success: false, message: 'Invalid payment amount' });
+    }
+
     const orderId = Date.now();
-    const ipAddr = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    const ipAddr =
+      req.headers['x-forwarded-for']?.split(',')[0] ||
+      req.socket.remoteAddress ||
+      '127.0.0.1';
+
+    const normalizedIp = ipAddr === '::1' ? '127.0.0.1' : ipAddr;
 
     let vnp_Params = {
       vnp_Version: '2.1.0',
       vnp_Command: 'pay',
       vnp_TmnCode,
-      vnp_Locale: 'vn',
+      vnp_Locale: 'en', // Thay đổi từ 'vn' thành 'en'
       vnp_CurrCode: 'VND',
       vnp_TxnRef: orderId.toString(),
-      vnp_OrderInfo: `Thanh toan don hang #${orderId}`,
-      vnp_OrderType: 'other',
+      vnp_OrderInfo: encodeURIComponent(`Payment for order #${orderId}`.slice(0, 255)), // Encode URI
+      vnp_OrderType: 'billpayment', // Thay đổi từ 'other' thành 'billpayment'
       vnp_Amount: amount,
-      vnp_ReturnUrl,
-      vnp_IpAddr: ipAddr,
+      vnp_ReturnUrl: vnp_ReturnUrl,
+      vnp_IpAddr: normalizedIp,
       vnp_CreateDate: moment().format('YYYYMMDDHHmmss'),
     };
+
+    console.log('VNPay Params:', vnp_Params); // Debug log
     vnp_Params = sortObject(vnp_Params);
     const signData = querystring.stringify(vnp_Params, { encode: false });
     const hmac = crypto.createHmac('sha512', vnp_HashSecret);
     const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex');
     vnp_Params['vnp_SecureHash'] = signed;
     const paymentUrl = `${vnp_Url}?${querystring.stringify(vnp_Params, { encode: false })}`;
+    console.log('Payment URL:', paymentUrl); // Debug log
     res.json({ success: true, paymentUrl });
   } catch (err) {
     res.status(500).json({ success: false, message: 'VNPay error', error: err.message });

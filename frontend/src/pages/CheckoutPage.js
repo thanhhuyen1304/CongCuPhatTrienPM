@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createOrder } from '../store/slices/orderSlice';
 import { resetCart } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 const CheckoutPage = () => {
   const dispatch = useDispatch();
@@ -73,11 +73,7 @@ const CheckoutPage = () => {
   // Thanh toán VNPay
   const handleVnpayPayment = async () => {
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/vnpay/create_payment_url`,
-        {},
-        { withCredentials: true }
-      );
+      const res = await api.post('/vnpay/create_payment_url', {});
       if (res.data && res.data.paymentUrl) {
         window.location.href = res.data.paymentUrl;
       } else {
