@@ -366,7 +366,7 @@ const products = [
 // Connect to MongoDB and seed data
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
+    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
     console.log('Connected to MongoDB');
 
     // Clear existing data

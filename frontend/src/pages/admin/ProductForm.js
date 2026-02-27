@@ -90,6 +90,13 @@ const AdminProductForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setLoading(false);
+      toast.error('Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại.');
+      navigate('/login');
+      return;
+    }
 
     try {
       const productData = {
@@ -121,6 +128,7 @@ const AdminProductForm = () => {
       
       navigate('/admin/products');
     } catch (error) {
+      console.error('Create/Update product error:', error.response || error);
       toast.error(error.response?.data?.message || t('adminProductForm.errorSaving'));
     } finally {
       setLoading(false);
