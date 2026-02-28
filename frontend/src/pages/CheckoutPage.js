@@ -56,11 +56,12 @@ const CheckoutPage = () => {
 
     try {
       const result = await dispatch(createOrder(orderData)).unwrap();
+
       dispatch(resetCart());
-      toast.success('Order placed successfully!');
+      toast.success('Đơn hàng được tạo thành công!');
       navigate(`/orders/${result._id}`);
     } catch (error) {
-      toast.error(error || 'Failed to place order');
+      toast.error(error || 'Tạo đơn hàng thất bại');
     }
   };
 
@@ -68,6 +69,43 @@ const CheckoutPage = () => {
     navigate('/cart');
     return null;
   }
+
+  // Thanh toán VNPay
+  const handleVnpayPayment = async () => {
+    try {
+      if (items.length === 0) {
+        toast.error('Giỏ hàng trống');
+        return;
+      }
+
+      // Tạo đơn hàng trước
+      const orderData = {
+        shippingAddress: {
+          fullName: formData.fullName,
+          phone: formData.phone,
+          street: formData.street,
+          city: formData.city,
+          state: formData.state,
+          zipCode: formData.zipCode,
+          country: formData.country,
+        },
+        paymentMethod: 'vnpay', // Set payment method to VNPay
+        note: formData.note,
+      };
+
+      console.log('Creating order for VNPay:', orderData);
+      const orderResult = await dispatch(createOrder(orderData)).unwrap();
+      console.log('Order created:', orderResult);
+      console.log('Returned order ID:', orderResult?._id);
+
+      // redirect directly to server endpoint that will build & sign the VNPay URL
+      dispatch(resetCart());
+      window.location.href =  `${process.env.REACT_APP_API_URL.replace('/api', '')}/api/vnpay/redirect/${orderResult._id}`;
+    } catch (err) {
+      console.error('VNPay error:', err);
+      toast.error(err?.message || 'Lỗi khi thanh toán VNPay');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -206,6 +244,21 @@ const CheckoutPage = () => {
                   </label>
                 ))}
               </div>
+            </div>
+
+            {/* VNPay Payment */}
+            <div className="bg-white rounded-xl shadow-sm p-6 border-2 border-green-500">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Thanh toán qua VNPay</h2>
+              <p className="text-gray-600 text-sm mb-4">
+                Thanh toán trực tuyến an toàn với VNPay. Đơn hàng sẽ được tạo ngay sau khi bạn hoàn tất thanh toán.
+              </p>
+              <button
+                type="button"
+                onClick={handleVnpayPayment}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+              >
+                💳 Thanh toán qua VNPay
+              </button>
             </div>
 
             {/* Order Notes */}

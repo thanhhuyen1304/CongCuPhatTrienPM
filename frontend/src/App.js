@@ -26,6 +26,7 @@ import OrdersPage from './pages/OrdersPage';
 import OrderDetailPage from './pages/OrderDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import WishlistPage from './pages/WishlistPage';
+import VnpayReturnPage from './pages/VnpayReturnPage';
 
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
@@ -69,6 +70,7 @@ function App() {
         <Route path="/product/:slug" element={<ProductPage />} />
         <Route path="/cart" element={<CartPage />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/checkout/vnpay-return" element={<VnpayReturnPage />} />
         
         {/* Guest Only Routes */}
         <Route element={<GuestRoute />}>

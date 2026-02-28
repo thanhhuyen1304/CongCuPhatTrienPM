@@ -4,6 +4,10 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('=== VALIDATION ERRORS ===');
+    console.log('Request body:', req.body);
+    console.log('Validation errors:', errors.array());
+    console.log('==========================');
     return res.status(400).json({
       success: false,
       message: 'Validation Error',
@@ -106,7 +110,7 @@ const categoryValidation = [
     .isLength({ max: 500 })
     .withMessage('Description cannot exceed 500 characters'),
   body('parent')
-    .optional()
+    .optional({ checkFalsy: true })
     .isMongoId()
     .withMessage('Invalid parent category ID'),
   handleValidation,
@@ -157,7 +161,7 @@ const createOrderValidation = [
     .withMessage('City is required'),
   body('paymentMethod')
     .optional()
-    .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay'])
+    .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay', 'vnpay'])
     .withMessage('Invalid payment method'),
   handleValidation,
 ];

@@ -15,6 +15,7 @@ const categoryRoutes = require('./routes/category.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const uploadRoutes = require('./routes/upload.routes');
+const vnpayRoutes = require('./routes/vnpay.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
 
 // Import middleware
@@ -22,6 +23,9 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Import passport config
 require('./config/passport');
+
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 
@@ -40,8 +44,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+  next();
+});
+
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce')
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce')
   .then(() => console.log('✅ MongoDB Connected Successfully'))
   .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
@@ -53,7 +63,16 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/upload', uploadRoutes);
+
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/vnpay', vnpayRoutes);
+
+// Serve uploaded files (local fallback when Cloudinary not configured)
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/uploads', express.static(uploadsDir));
 
 // Health check route
 app.get('/api/health', (req, res) => {

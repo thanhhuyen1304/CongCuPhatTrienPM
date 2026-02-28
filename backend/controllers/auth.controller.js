@@ -11,47 +11,64 @@ const {
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
+  console.log('=== REGISTER REQUEST RECEIVED ===');
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('Origin:', req.headers.origin);
+  console.log('==================================');
+
   const { name, email, password } = req.body;
+
+  console.log('Register attempt:', { name, email, password: password ? '***' : 'empty' });
 
   // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
+    console.log('User already exists:', email);
     throw new AppError('User already exists with this email', 400);
   }
 
-  // Create user
-  const user = await User.create({
-    name,
-    email,
-    password,
-  });
-
-  if (user) {
-    // Generate tokens
-    const accessToken = generateAccessToken(user._id);
-    const refreshToken = generateRefreshToken(user._id);
-
-    // Save refresh token to database
-    user.refreshToken = refreshToken;
-    await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Registration successful',
-      data: {
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          avatar: user.avatar,
-        },
-        accessToken,
-        refreshToken,
-      },
+  try {
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password,
     });
-  } else {
-    throw new AppError('Invalid user data', 400);
+
+    console.log('User created successfully:', user._id);
+
+    if (user) {
+      // Generate tokens
+      const accessToken = generateAccessToken(user._id);
+      const refreshToken = generateRefreshToken(user._id);
+
+      // Save refresh token to database
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      res.status(201).json({
+        success: true,
+        message: 'Registration successful',
+        data: {
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+          },
+          accessToken,
+          refreshToken,
+        },
+      });
+    } else {
+      console.log('User creation failed - no user returned');
+      throw new AppError('Invalid user data', 400);
+    }
+  } catch (error) {
+    console.error('User creation error:', error);
+    throw error;
   }
 });
 
@@ -61,36 +78,52 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
+  console.log('Login attempt:', { email, password: password ? '***' : 'empty' });
+
   // Find user and include password
   const user = await User.findOne({ email }).select('+password');
 
+  console.log('User found:', user ? { _id: user._id, email: user.email, hasPassword: !!user.password } : 'null');
+
   if (!user) {
+    console.log('User not found');
     throw new AppError('Invalid email or password', 401);
   }
 
   // Check if user has password (might be Google-only account)
   if (!user.password) {
+    console.log('User has no password');
     throw new AppError('Please login using Google', 401);
   }
 
   // Check password
   const isMatch = await user.comparePassword(password);
+  console.log('Password match result:', isMatch);
+
   if (!isMatch) {
+    console.log('Password does not match');
     throw new AppError('Invalid email or password', 401);
   }
 
   // Check if user is active
   if (!user.isActive) {
+    console.log('User is not active');
     throw new AppError('Your account has been deactivated', 401);
   }
+
+  console.log('Generating tokens...');
 
   // Generate tokens
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
+  console.log('Tokens generated, saving refresh token...');
+
   // Save refresh token to database
   user.refreshToken = refreshToken;
   await user.save();
+
+  console.log('Login successful, sending response');
 
   res.json({
     success: true,
