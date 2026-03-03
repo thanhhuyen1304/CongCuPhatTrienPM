@@ -161,7 +161,7 @@ const createOrderValidation = [
     .withMessage('City is required'),
   body('paymentMethod')
     .optional()
-    .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay', 'vnpay'])
+    .isIn(['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay'])
     .withMessage('Invalid payment method'),
   handleValidation,
 ];

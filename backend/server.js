@@ -15,8 +15,8 @@ const categoryRoutes = require('./routes/category.routes');
 const cartRoutes = require('./routes/cart.routes');
 const orderRoutes = require('./routes/order.routes');
 const uploadRoutes = require('./routes/upload.routes');
-const vnpayRoutes = require('./routes/vnpay.routes');
 const wishlistRoutes = require('./routes/wishlist.routes');
+const vnpayRoutes = require('./routes/vnpay.routes');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');

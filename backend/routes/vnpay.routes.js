@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { vnpayReturn, vnpayIpn, redirectToVnpay } = require('../controllers/vnpay.controller');
 const { protect } = require('../middleware/auth');
+const { createPayment, paymentReturn } = require('../controllers/vnpay.controller');
 
-// (deprecated) VNPay URL creation endpoint removed – use GET /redirect/:orderId
-// Server-side redirect to VNPay (GET /api/vnpay/redirect/:orderId)
-router.get('/redirect/:orderId', redirectToVnpay);
-// Xử lý return URL từ VNPay
-router.get('/vnpay_return', vnpayReturn);
-// Xử lý IPN từ VNPay
-router.get('/vnpay_ipn', vnpayIpn);
+// start a payment (user must be logged in)
+router.get('/payment', protect, createPayment);
+
+// VNPay will redirect here after payment
+router.get('/return', paymentReturn);
+
 module.exports = router;
