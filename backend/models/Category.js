@@ -58,14 +58,9 @@ categorySchema.virtual('productsCount', {
 // Generate slug before saving
 categorySchema.pre('save', function (next) {
   if (this.isModified('name')) {
-    // Normalize unicode (remove diacritics), remove invalid chars, then replace spaces with hyphens
     this.slug = this.name
-      .toString()
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
+      .replace(/[^a-zA-Z0-9\s]/g, '')
       .replace(/\s+/g, '-');
   }
   next();

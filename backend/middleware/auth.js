@@ -33,14 +33,42 @@ const protect = asyncHandler(async (req, res, next) => {
       next();
     } catch (error) {
       console.error('Auth Error:', error.message);
-      res.status(401);
-      throw new Error('Not authorized, token failed');
+      
+      // Handle specific JWT errors
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Token expired'
+        });
+      } else if (error.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid token'
+        });
+      } else if (error.message === 'User not found') {
+        return res.status(401).json({
+          success: false,
+          message: 'User not found'
+        });
+      } else if (error.message === 'User account is deactivated') {
+        return res.status(401).json({
+          success: false,
+          message: 'User account is deactivated'
+        });
+      } else {
+        return res.status(401).json({
+          success: false,
+          message: 'Not authorized, token failed'
+        });
+      }
     }
   }
 
   if (!token) {
-    res.status(401);
-    throw new Error('Not authorized, no token');
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, no token'
+    });
   }
 });
 
@@ -49,8 +77,22 @@ const admin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
     next();
   } else {
-    res.status(403);
-    throw new Error('Not authorized as admin');
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized as admin'
+    });
+  }
+};
+
+// Shipper middleware
+const shipper = (req, res, next) => {
+  if (req.user && req.user.role === 'shipper') {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized as shipper'
+    });
   }
 };
 
@@ -101,6 +143,7 @@ const verifyRefreshToken = (token) => {
 module.exports = {
   protect,
   admin,
+  shipper,
   optionalAuth,
   generateAccessToken,
   generateRefreshToken,

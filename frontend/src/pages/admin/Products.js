@@ -16,6 +16,15 @@ const AdminProducts = () => {
   const [categories, setCategories] = useState([]);
   const { t } = useI18n();
 
+  const fetchCategories = useCallback(async () => {
+    try {
+      const response = await api.get('/categories');
+      setCategories(response.data.data.categories || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }, []);
+
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
@@ -37,20 +46,14 @@ const AdminProducts = () => {
   }, [page, search, category, t]);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await api.get('/categories');
-        setCategories(response.data.data.categories || []);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
     fetchCategories();
-  }, []);
+  }, [fetchCategories]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  
 
   const handleDelete = async (id) => {
     if (!window.confirm(t('common.confirmDelete'))) {

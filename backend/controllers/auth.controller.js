@@ -11,64 +11,49 @@ const {
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
-  console.log('=== REGISTER REQUEST RECEIVED ===');
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  console.log('Origin:', req.headers.origin);
-  console.log('==================================');
-
-  const { name, email, password } = req.body;
-
-  console.log('Register attempt:', { name, email, password: password ? '***' : 'empty' });
+  const { name, email, password, role, shipperInfo } = req.body;
 
   // Check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
-    console.log('User already exists:', email);
     throw new AppError('User already exists with this email', 400);
   }
 
-  try {
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password,
-    });
+  // Create user
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: role || 'user',
+    shipperInfo: role === 'shipper' ? shipperInfo : undefined,
+  });
 
-    console.log('User created successfully:', user._id);
+  if (user) {
+    // Generate tokens
+    const accessToken = generateAccessToken(user._id);
+    const refreshToken = generateRefreshToken(user._id);
 
-    if (user) {
-      // Generate tokens
-      const accessToken = generateAccessToken(user._id);
-      const refreshToken = generateRefreshToken(user._id);
+    // Save refresh token to database
+    user.refreshToken = refreshToken;
+    await user.save();
 
-      // Save refresh token to database
-      user.refreshToken = refreshToken;
-      await user.save();
-
-      res.status(201).json({
-        success: true,
-        message: 'Registration successful',
-        data: {
-          user: {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            avatar: user.avatar,
-          },
-          accessToken,
-          refreshToken,
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar,
         },
-      });
-    } else {
-      console.log('User creation failed - no user returned');
-      throw new AppError('Invalid user data', 400);
-    }
-  } catch (error) {
-    console.error('User creation error:', error);
-    throw error;
+        accessToken,
+        refreshToken,
+      },
+    });
+  } else {
+    throw new AppError('Invalid user data', 400);
   }
 });
 
@@ -78,52 +63,36 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  console.log('Login attempt:', { email, password: password ? '***' : 'empty' });
-
   // Find user and include password
   const user = await User.findOne({ email }).select('+password');
 
-  console.log('User found:', user ? { _id: user._id, email: user.email, hasPassword: !!user.password } : 'null');
-
   if (!user) {
-    console.log('User not found');
     throw new AppError('Invalid email or password', 401);
   }
 
   // Check if user has password (might be Google-only account)
   if (!user.password) {
-    console.log('User has no password');
     throw new AppError('Please login using Google', 401);
   }
 
   // Check password
   const isMatch = await user.comparePassword(password);
-  console.log('Password match result:', isMatch);
-
   if (!isMatch) {
-    console.log('Password does not match');
     throw new AppError('Invalid email or password', 401);
   }
 
   // Check if user is active
   if (!user.isActive) {
-    console.log('User is not active');
     throw new AppError('Your account has been deactivated', 401);
   }
-
-  console.log('Generating tokens...');
 
   // Generate tokens
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  console.log('Tokens generated, saving refresh token...');
-
   // Save refresh token to database
   user.refreshToken = refreshToken;
   await user.save();
-
-  console.log('Login successful, sending response');
 
   res.json({
     success: true,
@@ -337,6 +306,62 @@ const googleCallback = asyncHandler(async (req, res) => {
   );
 });
 
+// @desc    Apply to become a shipper
+// @route   POST /api/auth/apply-shipper
+// @access  Private
+const applyShipper = asyncHandler(async (req, res) => {
+  const { vehicleType, licensePlate, phone, experience, workingHours } = req.body;
+
+  // Validate required fields
+  if (!vehicleType || !licensePlate || !phone) {
+    throw new AppError('Vehicle type, license plate, and phone are required', 400);
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Check if user is already a shipper
+  if (user.role === 'shipper') {
+    throw new AppError('You are already a delivery partner', 400);
+  }
+
+  // Update user with shipper info (pending approval)
+  user.shipperInfo = {
+    vehicleType,
+    licensePlate,
+    phone,
+    experience: experience || 0,
+    workingHours: workingHours || 'full-time',
+    isVerified: false, // Pending admin approval
+    rating: 5,
+    totalDeliveries: 0,
+    applicationDate: new Date(),
+    status: 'pending', // pending, approved, rejected
+  };
+
+  // Don't change role yet - wait for admin approval
+  // user.role = 'shipper';
+
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Shipper application submitted successfully. We will review your application within 24-48 hours.',
+    data: {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        shipperInfo: user.shipperInfo,
+      },
+    },
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -345,5 +370,6 @@ module.exports = {
   getMe,
   updateProfile,
   changePassword,
+  applyShipper,
   googleCallback,
 };

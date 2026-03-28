@@ -1,6 +1,108 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 
+// @desc    Get shipper applications (Admin)
+// @route   GET /api/users/shipper-applications
+// @access  Private/Admin
+const getShipperApplications = asyncHandler(async (req, res) => {
+  const status = req.query.status || 'pending'; // pending | approved | rejected | all
+
+  const query = {
+    shipperInfo: { $exists: true },
+    'shipperInfo.applicationDate': { $exists: true },
+  };
+
+  if (status !== 'all') {
+    query['shipperInfo.status'] = status;
+  }
+
+  const applications = await User.find(query)
+    .select('name email phone role shipperInfo createdAt')
+    .sort({ 'shipperInfo.applicationDate': -1, createdAt: -1 });
+
+  res.json({
+    success: true,
+    data: {
+      applications,
+      total: applications.length,
+    },
+  });
+});
+
+// @desc    Approve shipper application (Admin)
+// @route   PUT /api/users/shipper-applications/:id/approve
+// @access  Private/Admin
+const approveShipperApplication = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (!user.shipperInfo || user.shipperInfo.status !== 'pending') {
+    res.status(400);
+    throw new Error('No pending shipper application for this user');
+  }
+
+  // Update shipper info and role
+  user.shipperInfo.status = 'approved';
+  user.shipperInfo.isVerified = true;
+  user.role = 'shipper';
+
+  // Save and verify the changes
+  const updated = await user.save();
+  
+  // Log for debugging
+  console.log(`✅ Approved shipper application for user: ${user.name} (${user.email})`);
+  console.log(`   - Role updated to: ${updated.role}`);
+  console.log(`   - Shipper status: ${updated.shipperInfo.status}`);
+  console.log(`   - Is verified: ${updated.shipperInfo.isVerified}`);
+
+  res.json({
+    success: true,
+    message: 'Approved shipper application successfully',
+    data: { 
+      user: {
+        _id: updated._id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        shipperInfo: updated.shipperInfo
+      }
+    },
+  });
+});
+
+// @desc    Reject shipper application (Admin)
+// @route   PUT /api/users/shipper-applications/:id/reject
+// @access  Private/Admin
+const rejectShipperApplication = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (!user.shipperInfo || user.shipperInfo.status !== 'pending') {
+    res.status(400);
+    throw new Error('No pending shipper application for this user');
+  }
+
+  user.shipperInfo.status = 'rejected';
+  user.shipperInfo.isVerified = false;
+  // keep role as-is (typically 'user')
+
+  const updated = await user.save();
+
+  res.json({
+    success: true,
+    message: 'Rejected shipper application',
+    data: { user: updated },
+  });
+});
+
 // @desc    Get all users (Admin)
 // @route   GET /api/users
 // @access  Private/Admin
@@ -139,8 +241,20 @@ const deleteUser = asyncHandler(async (req, res) => {
 const getUserStats = asyncHandler(async (req, res) => {
   const totalUsers = await User.countDocuments({ role: 'user' });
   const totalAdmins = await User.countDocuments({ role: 'admin' });
+  const totalShippers = await User.countDocuments({ role: 'shipper' });
   const activeUsers = await User.countDocuments({ isActive: true });
   const inactiveUsers = await User.countDocuments({ isActive: false });
+
+  // Shipper applications stats
+  const pendingApplications = await User.countDocuments({ 
+    'shipperInfo.status': 'pending' 
+  });
+  const approvedApplications = await User.countDocuments({ 
+    'shipperInfo.status': 'approved' 
+  });
+  const rejectedApplications = await User.countDocuments({ 
+    'shipperInfo.status': 'rejected' 
+  });
 
   // New users in last 30 days
   const thirtyDaysAgo = new Date();
@@ -175,10 +289,91 @@ const getUserStats = asyncHandler(async (req, res) => {
     data: {
       totalUsers,
       totalAdmins,
+      totalShippers,
       activeUsers,
       inactiveUsers,
       newUsers,
       usersByMonth,
+      shipperApplications: {
+        pending: pendingApplications,
+        approved: approvedApplications,
+        rejected: rejectedApplications,
+        total: pendingApplications + approvedApplications + rejectedApplications
+      }
+    },
+  });
+});
+
+// @desc    Check specific user status (Debug endpoint)
+// @route   GET /api/users/check/:email
+// @access  Private/Admin
+const checkUserStatus = asyncHandler(async (req, res) => {
+  const user = await User.findOne({ email: req.params.email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  res.json({
+    success: true,
+    data: {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        shipperInfo: user.shipperInfo,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    },
+  });
+});
+
+// @desc    Create shipper application
+// @route   POST /api/users/shipper-applications
+// @access  Private
+const createShipperApplication = asyncHandler(async (req, res) => {
+  const { vehicleType, licensePlate, drivingLicense, experience } = req.body;
+  const userId = req.user._id;
+
+  // Check if user already has a shipper application
+  const user = await User.findById(userId);
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (user.role === 'shipper') {
+    res.status(400);
+    throw new Error('You are already a shipper');
+  }
+
+  if (user.shipperInfo && user.shipperInfo.status === 'pending') {
+    res.status(400);
+    throw new Error('You already have a pending shipper application');
+  }
+
+  // Create or update shipper application
+  user.shipperInfo = {
+    vehicleType,
+    licensePlate,
+    drivingLicense,
+    experience: parseInt(experience) || 0,
+    applicationDate: new Date(),
+    status: 'pending',
+    isVerified: false,
+  };
+
+  await user.save();
+
+  res.status(201).json({
+    success: true,
+    message: 'Shipper application submitted successfully',
+    data: {
+      application: user.shipperInfo,
     },
   });
 });
@@ -189,4 +384,9 @@ module.exports = {
   updateUser,
   deleteUser,
   getUserStats,
+  getShipperApplications,
+  approveShipperApplication,
+  rejectShipperApplication,
+  createShipperApplication,
+  checkUserStatus,
 };

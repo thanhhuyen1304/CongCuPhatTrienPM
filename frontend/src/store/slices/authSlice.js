@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import api from '../../services/api';
+import socketService from '../../services/socketService';
 
 // Get user from localStorage
 const user = JSON.parse(localStorage.getItem('user'));
@@ -37,9 +38,7 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
-      console.log('Frontend: Sending login request', credentials);
       const response = await api.post('/auth/login', credentials);
-      console.log('Frontend: Login response received', response.data);
       const { user, accessToken, refreshToken } = response.data.data;
       
       localStorage.setItem('accessToken', accessToken);
@@ -48,7 +47,6 @@ export const login = createAsyncThunk(
       
       return user;
     } catch (error) {
-      console.error('Frontend: Login error', error);
       return rejectWithValue(
         error.response?.data?.message || 'Login failed'
       );
@@ -172,6 +170,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        
+        // Connect to Socket.IO
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          socketService.connect(token);
+        }
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
@@ -186,6 +190,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        
+        // Connect to Socket.IO
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+          socketService.connect(token);
+        }
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
@@ -195,6 +205,9 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.isAuthenticated = false;
+        
+        // Disconnect socket
+        socketService.disconnect();
       })
       // Get Me
       .addCase(getMe.pending, (state) => {
@@ -204,6 +217,12 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        
+        // Connect to Socket.IO if not already connected
+        const token = localStorage.getItem('accessToken');
+        if (token && !socketService.isSocketConnected()) {
+          socketService.connect(token);
+        }
       })
       .addCase(getMe.rejected, (state) => {
         state.loading = false;

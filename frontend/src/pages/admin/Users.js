@@ -35,7 +35,19 @@ const AdminUsers = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers, page, search, role]);
+    
+    // Listen for user data changes from shipper applications
+    const handleUserDataChanged = () => {
+      console.log('User data changed, refreshing users list...');
+      fetchUsers();
+    };
+    
+    window.addEventListener('userDataChanged', handleUserDataChanged);
+    
+    return () => {
+      window.removeEventListener('userDataChanged', handleUserDataChanged);
+    };
+  }, [fetchUsers]);
 
   const toggleUserStatus = async (userId, currentStatus) => {
     try {
@@ -44,17 +56,6 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error) {
       toast.error(t('common.error') + ': Failed to update status');
-    }
-  };
-
-  const toggleUserRole = async (userId, currentRole) => {
-    try {
-      const newRole = currentRole === 'admin' ? 'user' : 'admin';
-      await api.patch(`/users/${userId}/toggle-role`);
-      toast.success(newRole === 'admin' ? t('adminUsers.makeAdmin') : t('adminUsers.makeCustomer'));
-      fetchUsers();
-    } catch (error) {
-      toast.error(t('common.error') + ': Failed to update role');
     }
   };
 
@@ -89,6 +90,7 @@ const AdminUsers = () => {
             <option value="">{t('adminUsers.allRoles')}</option>
             <option value="user">{t('adminUsers.customer')}</option>
             <option value="admin">{t('adminUsers.admin')}</option>
+            <option value="shipper">Shipper</option>
           </select>
         </div>
       </div>
@@ -149,26 +151,34 @@ const AdminUsers = () => {
                         {user.email}
                       </td>
                       <td className="px-6 py-4">
-                        <button
-                          onClick={() => toggleUserRole(user._id, user.role)}
-                          className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 ${
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1 w-fit ${
                             user.role === 'admin'
-                              ? 'bg-purple-100 text-purple-800 hover:bg-purple-200'
-                              : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-                          } transition-colors cursor-pointer`}
+                              ? 'bg-purple-100 text-purple-800'
+                              : user.role === 'shipper'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
                         >
                           {user.role === 'admin' ? (
                             <>
                               <ShieldCheckIcon className="w-4 h-4" />
-                              {t('adminUsers.admin')}
+                              Admin
+                            </>
+                          ) : user.role === 'shipper' ? (
+                            <>
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1-1V9a1 1 0 011-1h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h4a1 1 0 001-1m-6 0a1 1 0 00-1-1H2a1 1 0 00-1 1v3a1 1 0 001 1h1m0-4a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H3a1 1 0 01-1-1v-3z" />
+                              </svg>
+                              Shipper
                             </>
                           ) : (
                             <>
                               <ShieldExclamationIcon className="w-4 h-4" />
-                              {t('adminUsers.customer')}
+                              Customer
                             </>
                           )}
-                        </button>
+                        </span>
                       </td>
                       <td className="px-6 py-4">
                         <span

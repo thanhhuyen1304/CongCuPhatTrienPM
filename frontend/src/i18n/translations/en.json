@@ -89,10 +89,10 @@
     "status": "Status",
     "view": "View Details",
     "noOrders": "You have no orders yet",
-    "pending": "Pending",
+    "pending": "Pending Confirmation",
     "confirmed": "Confirmed",
-    "processing": "Processing",
-    "shipped": "Shipped",
+    "processing": "Waiting for Pickup",
+    "shipped": "Shipping",
     "delivered": "Delivered",
     "cancelled": "Cancelled"
   },
@@ -317,8 +317,10 @@
     "approved": "Order approved",
     "rejected": "Order rejected",
     "confirmApprove": "Approve this order?",
-    "confirmReject": "Reject this order?",
-    "approveNote": "Approval note",
-    "rejectReason": "Rejection reason"
+    "confirmReject": "Are you sure you want to reject this order?",
+    "approveNote": "Approval Note",
+    "rejectReason": "Rejection Reason",
+    "updateStatus": "Update Status",
+    "selectStatus": "Select Status"
   }
 }
