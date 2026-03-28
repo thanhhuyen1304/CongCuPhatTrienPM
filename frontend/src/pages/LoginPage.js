@@ -38,10 +38,13 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
+      console.log('LoginPage: Starting login...');
       await dispatch(login(formData)).unwrap();
+      console.log('LoginPage: Login successful, showing toast and navigating...');
       toast.success('Login successful!');
       navigate(from, { replace: true });
     } catch (error) {
+      console.log('LoginPage: Login failed', error);
       // Error handled by useEffect
     }
   };

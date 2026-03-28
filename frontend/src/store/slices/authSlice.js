@@ -37,7 +37,9 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
+      console.log('Frontend: Sending login request', credentials);
       const response = await api.post('/auth/login', credentials);
+      console.log('Frontend: Login response received', response.data);
       const { user, accessToken, refreshToken } = response.data.data;
       
       localStorage.setItem('accessToken', accessToken);
@@ -46,6 +48,7 @@ export const login = createAsyncThunk(
       
       return user;
     } catch (error) {
+      console.error('Frontend: Login error', error);
       return rejectWithValue(
         error.response?.data?.message || 'Login failed'
       );

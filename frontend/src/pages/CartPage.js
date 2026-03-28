@@ -7,6 +7,7 @@ import {
   removeFromCart,
   clearCart,
 } from '../store/slices/cartSlice';
+import api from '../services/api';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
 import {
@@ -260,11 +261,34 @@ const CartPage = () => {
               onClick={() => navigate('/checkout')}
               className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
             >
-              Proceed to Checkout
+              Thanh toán trực tiếp
+            </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  const res = await dispatch(getCart()).unwrap();
+                  // ensure cart updated
+                } catch {}
+                try {
+                  const response = await api.get('/vnpay/payment');
+                  const data = response.data;
+                  if (data.success && data.url) {
+                    window.location.href = data.url;
+                  } else {
+                    toast.error('Không thể khởi tạo thanh toán VNPay');
+                  }
+                } catch (err) {
+                  toast.error('Lỗi khi kết nối máy chủ');
+                }
+              }}
+              className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
+            >
+              💳 Thanh toán VNPay
             </button>
 
             <div className="mt-4 text-center text-sm text-gray-500">
-              <p>Secure checkout powered by Stripe</p>
+              <p>Chọn VNPay để thanh toán trực tuyến</p>
             </div>
           </div>
         </div>

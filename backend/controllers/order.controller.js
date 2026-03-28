@@ -69,6 +69,7 @@ const createOrder = asyncHandler(async (req, res) => {
   });
 
   await order.save();
+  console.log('Saved order ID:', order._id);
 
   // Clear user's cart
   await Cart.findOneAndUpdate(

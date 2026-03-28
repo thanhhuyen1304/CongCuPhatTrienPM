@@ -56,11 +56,12 @@ const CheckoutPage = () => {
 
     try {
       const result = await dispatch(createOrder(orderData)).unwrap();
+
       dispatch(resetCart());
-      toast.success('Order placed successfully!');
+      toast.success('Đơn hàng được tạo thành công!');
       navigate(`/orders/${result._id}`);
     } catch (error) {
-      toast.error(error || 'Failed to place order');
+      toast.error(error || 'Tạo đơn hàng thất bại');
     }
   };
 
