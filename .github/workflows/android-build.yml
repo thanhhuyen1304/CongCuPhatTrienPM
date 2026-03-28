@@ -53,7 +53,13 @@ jobs:
         working-directory: ShipperMobileApp/android
         env:
           ANDROID_HOME: ${{ github.workspace }}/ShipperMobileApp/android
-        run: ./gradlew assembleDebug --no-daemon
+          ANDROID_SDK_ROOT: ${{ github.workspace }}/ShipperMobileApp/android
+        run: |
+          pwd
+          ls -la
+          chmod +x ./gradlew
+          ./gradlew --version
+          ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
         if: success()
