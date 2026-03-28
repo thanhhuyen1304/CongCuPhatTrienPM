@@ -9,7 +9,6 @@ const ShipperRoute = () => {
     distance: '0 km',
     estimatedTime: '0 min',
   });
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchRoute();
@@ -17,7 +16,6 @@ const ShipperRoute = () => {
 
   const fetchRoute = async () => {
     try {
-      setLoading(true);
       const response = await shipperService.getShipperRoute();
       if (response.success) {
         setRoute(response.data.route || {
@@ -29,8 +27,6 @@ const ShipperRoute = () => {
       }
     } catch (error) {
       console.error('Error fetching route:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

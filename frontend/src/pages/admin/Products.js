@@ -23,7 +23,7 @@ const AdminProducts = () => {
     } catch (error) {
       console.error('Error fetching categories:', error);
     }
-  }, [t]);
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {

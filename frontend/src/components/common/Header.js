@@ -197,6 +197,15 @@ const Header = () => {
                         {t('nav.admin')}
                       </Link>
                     )}
+                    {user?.role === 'shipper' && (
+                      <Link
+                        to="/shipper"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserDropdown(false)}
+                      >
+                        Shipper Dashboard
+                      </Link>
+                    )}
                     <hr className="my-2" />
                     <button
                       onClick={handleLogout}

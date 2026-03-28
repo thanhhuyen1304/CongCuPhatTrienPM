@@ -6,6 +6,7 @@ import { addToWishlist, removeFromWishlist } from '../../store/slices/wishlistSl
 import toast from 'react-hot-toast';
 import { ShoppingCartIcon, StarIcon, HeartIcon } from '@heroicons/react/24/solid';
 import { HeartIcon as HeartOutlineIcon } from '@heroicons/react/24/outline';
+import { formatVND } from '../../utils/currency';
 
 const ProductCard = ({ product }) => {
   const dispatch = useDispatch();
@@ -138,10 +139,10 @@ const ProductCard = ({ product }) => {
           {/* Price */}
           <div className="mt-2 flex items-center justify-between">
             <div>
-              <span className="price">${product.price.toFixed(2)}</span>
+              <span className="price">{formatVND(product.price)}</span>
               {product.comparePrice && product.comparePrice > product.price && (
                 <span className="price-old ml-2">
-                  ${product.comparePrice.toFixed(2)}
+                  {formatVND(product.comparePrice)}
                 </span>
               )}
             </div>

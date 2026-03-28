@@ -18,7 +18,7 @@ const AdminCategories = () => {
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await api.get('/categories/tree');
+      const response = await api.get('/categories/admin/all');
       setCategories(response.data.data.categories || []);
     } catch (error) {
       toast.error(t('common.error') + ': Failed to load categories');

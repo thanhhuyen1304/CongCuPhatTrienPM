@@ -4,7 +4,6 @@ import shipperService from '../../services/shipperService';
 
 const ShipperOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -12,15 +11,12 @@ const ShipperOrders = () => {
 
   const fetchOrders = async () => {
     try {
-      setLoading(true);
       const response = await shipperService.getShipperOrders();
       if (response.success) {
         setOrders(response.data.orders || []);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -87,10 +83,7 @@ const ShipperOrders = () => {
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center">
                     <UserIcon className="h-4 w-4 mr-2" />
-                    {order.c
-                      onClick={() => handleAcceptOrder(order.id)}
-                      className="bg-green-50 hover:bg-green-100 text-green-600 px-4 py-2 rounded text-sm font-medium transition"
-                    
+                    {order.customerName || 'N/A'}
                   </div>
                   <div className="flex items-center">
                     <PhoneIcon className="h-4 w-4 mr-2" />
@@ -112,7 +105,10 @@ const ShipperOrders = () => {
                     View Details
                   </button>
                   {order.status === 'pending' && (
-                    <button className="bg-green-50 hover:bg-green-100 text-green-600 px-4 py-2 rounded text-sm font-medium transition">
+                    <button 
+                      onClick={() => handleAcceptOrder(order.id)}
+                      className="bg-green-50 hover:bg-green-100 text-green-600 px-4 py-2 rounded text-sm font-medium transition"
+                    >
                       Accept
                     </button>
                   )}

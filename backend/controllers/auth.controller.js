@@ -11,7 +11,7 @@ const {
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password, role, shipperInfo } = req.body;
 
   // Check if user exists
   const userExists = await User.findOne({ email });
@@ -24,6 +24,8 @@ const register = asyncHandler(async (req, res) => {
     name,
     email,
     password,
+    role: role || 'user',
+    shipperInfo: role === 'shipper' ? shipperInfo : undefined,
   });
 
   if (user) {
@@ -304,6 +306,62 @@ const googleCallback = asyncHandler(async (req, res) => {
   );
 });
 
+// @desc    Apply to become a shipper
+// @route   POST /api/auth/apply-shipper
+// @access  Private
+const applyShipper = asyncHandler(async (req, res) => {
+  const { vehicleType, licensePlate, phone, experience, workingHours } = req.body;
+
+  // Validate required fields
+  if (!vehicleType || !licensePlate || !phone) {
+    throw new AppError('Vehicle type, license plate, and phone are required', 400);
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw new AppError('User not found', 404);
+  }
+
+  // Check if user is already a shipper
+  if (user.role === 'shipper') {
+    throw new AppError('You are already a delivery partner', 400);
+  }
+
+  // Update user with shipper info (pending approval)
+  user.shipperInfo = {
+    vehicleType,
+    licensePlate,
+    phone,
+    experience: experience || 0,
+    workingHours: workingHours || 'full-time',
+    isVerified: false, // Pending admin approval
+    rating: 5,
+    totalDeliveries: 0,
+    applicationDate: new Date(),
+    status: 'pending', // pending, approved, rejected
+  };
+
+  // Don't change role yet - wait for admin approval
+  // user.role = 'shipper';
+
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Shipper application submitted successfully. We will review your application within 24-48 hours.',
+    data: {
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        shipperInfo: user.shipperInfo,
+      },
+    },
+  });
+});
+
 module.exports = {
   register,
   login,
@@ -312,5 +370,6 @@ module.exports = {
   getMe,
   updateProfile,
   changePassword,
+  applyShipper,
   googleCallback,
 };

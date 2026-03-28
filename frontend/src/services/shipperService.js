@@ -70,7 +70,7 @@ export const getShipperStats = async () => {
   }
 };
 
-export default {
+const shipperService = {
   getShipperDashboard,
   getShipperOrders,
   acceptDeliveryOrder,
@@ -79,3 +79,5 @@ export default {
   updateShipperLocation,
   getShipperStats,
 };
+
+export default shipperService;

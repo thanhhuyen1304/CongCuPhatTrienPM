@@ -55,6 +55,7 @@ const ShopPage = () => {
     maxPrice: searchParams.get('maxPrice') || '',
     sort: searchParams.get('sort') || 'newest',
     page: parseInt(searchParams.get('page')) || 1,
+    showAll: searchParams.get('showAll') === 'true',
   });
 
   useEffect(() => {
@@ -83,7 +84,7 @@ const ShopPage = () => {
   }, [slug, categories]);
 
   useEffect(() => {
-    const params = { ...filters, limit: 12 };
+    const params = { ...filters, limit: filters.showAll ? 1000 : 12 };
 
     // Remove empty/null values but keep page if set
     Object.keys(params).forEach((key) => {
@@ -96,8 +97,8 @@ const ShopPage = () => {
   }, [dispatch, filters]);
 
   const handleFilterChange = (key, value) => {
-    // Only reset page when changing category, price, or search
-    const resetPage = ['category', 'minPrice', 'maxPrice', 'search'].includes(key);
+    // Only reset page when changing category, price, search, or showAll
+    const resetPage = ['category', 'minPrice', 'maxPrice', 'search', 'showAll'].includes(key);
     
     // Convert price values to numbers
     let processedValue = value;
@@ -115,7 +116,8 @@ const ShopPage = () => {
     // Update URL params
     const params = new URLSearchParams();
     Object.entries(newFilters).forEach(([k, v]) => {
-      if (v && k !== 'page') params.set(k, v); // Don't add page to URL
+      if (v && k !== 'page' && k !== 'showAll') params.set(k, v); // Don't add page and showAll to URL
+      if (k === 'showAll' && v) params.set(k, 'true');
     });
     setSearchParams(params);
   };
@@ -143,6 +145,7 @@ const ShopPage = () => {
       maxPrice: '',
       sort: 'newest',
       page: 1,
+      showAll: false,
     });
     setSearchParams({});
   };
@@ -228,7 +231,7 @@ const ShopPage = () => {
         </aside>
 
         {/* Main Content */}
-        <div className="flex-1">
+        <div>
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
@@ -239,11 +242,25 @@ const ShopPage = () => {
                 }
               </h1>
               <p className="text-gray-600">
-                {pagination.total} sản phẩm tìm thấy
+                {filters.showAll 
+                  ? `Hiển thị tất cả ${pagination.total} sản phẩm`
+                  : `${pagination.total} sản phẩm tìm thấy`
+                }
               </p>
             </div>
 
             <div className="flex items-center gap-4">
+              {/* Show All Toggle */}
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={filters.showAll}
+                  onChange={(e) => handleFilterChange('showAll', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 rounded"
+                />
+                <span className="text-gray-700">Hiển thị tất cả</span>
+              </label>
+
               {/* Mobile Filter Button */}
               <button
                 onClick={() => setFilterOpen(true)}
@@ -290,7 +307,7 @@ const ShopPage = () => {
               </div>
 
               {/* Pagination */}
-              {pagination.pages > 1 && (
+              {pagination.pages > 1 && !filters.showAll && (
                 <div className="mt-8 flex justify-center">
                   <nav className="flex items-center gap-2">
                     <button

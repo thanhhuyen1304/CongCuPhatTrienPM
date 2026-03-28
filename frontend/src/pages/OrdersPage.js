@@ -4,6 +4,8 @@ import { getMyOrders } from '../store/slices/orderSlice';
 import { useNavigate } from 'react-router-dom';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
+import socketService from '../services/socketService';
+import { formatVND } from '../utils/currency';
 import { EyeIcon } from '@heroicons/react/24/outline';
 
 const OrdersPage = () => {
@@ -12,6 +14,7 @@ const OrdersPage = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const { orders, pagination, loading, error } = useSelector((state) => state.orders);
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const params = { page, limit: 10 };
@@ -27,11 +30,35 @@ const OrdersPage = () => {
     }
   }, [error]);
 
+  // Setup real-time updates for user's orders
+  useEffect(() => {
+    const handleOrderStatusUpdate = (data) => {
+      // Only update if this is the user's order
+      if (user && data.order.user === user._id) {
+        console.log('📦 My order status updated:', data);
+        
+        // Refresh orders to get updated data
+        const params = { page, limit: 10 };
+        if (statusFilter) {
+          params.status = statusFilter;
+        }
+        dispatch(getMyOrders(params));
+      }
+    };
+
+    // Register socket listener
+    socketService.on('order_status_updated', handleOrderStatusUpdate);
+
+    // Cleanup listener on unmount
+    return () => {
+      socketService.off('order_status_updated', handleOrderStatusUpdate);
+    };
+  }, [dispatch, page, statusFilter, user]);
+
   const getStatusColor = (status) => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       confirmed: 'bg-blue-100 text-blue-800',
-      processing: 'bg-purple-100 text-purple-800',
       shipped: 'bg-indigo-100 text-indigo-800',
       delivered: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800',
@@ -42,7 +69,6 @@ const OrdersPage = () => {
   const statusTranslations = {
     pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
-    processing: 'Đang xử lý',
     shipped: 'Đang giao',
     delivered: 'Đã giao',
     cancelled: 'Đã hủy',
@@ -71,7 +97,7 @@ const OrdersPage = () => {
         >
           Tất cả
         </button>
-        {['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'].map((status) => (
+        {['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'].map((status) => (
           <button
             key={status}
             onClick={() => { setStatusFilter(status); setPage(1); }}
@@ -130,7 +156,7 @@ const OrdersPage = () => {
                       <div>
                         <p className="text-gray-600">Tổng tiền</p>
                         <p className="font-medium text-gray-900">
-                          {order.totalPrice?.toLocaleString('vi-VN')} ₫
+                          {formatVND(order.totalPrice)}
                         </p>
                       </div>
                       <div>

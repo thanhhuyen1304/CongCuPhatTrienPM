@@ -467,60 +467,70 @@ const getAllProductsAdmin = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get product statistics (Admin)
-// @route   GET /api/products/stats
+// @desc    Get product statistics (Admin)
+// @route   GET /api/products/admin/stats
 // @access  Private/Admin
 const getProductStats = asyncHandler(async (req, res) => {
-  const totalProducts = await Product.countDocuments();
-  const activeProducts = await Product.countDocuments({ isActive: true });
-  const featuredProducts = await Product.countDocuments({ isFeatured: true });
-  const outOfStock = await Product.countDocuments({ stock: 0 });
-  const lowStock = await Product.countDocuments({ stock: { $gt: 0, $lte: 10 } });
+  try {
+    const totalProducts = await Product.countDocuments();
+    const activeProducts = await Product.countDocuments({ isActive: true });
+    const featuredProducts = await Product.countDocuments({ isFeatured: true });
+    const outOfStock = await Product.countDocuments({ stock: 0 });
+    const lowStock = await Product.countDocuments({ stock: { $gt: 0, $lte: 10 } });
 
-  // Products by category
-  const productsByCategory = await Product.aggregate([
-    { $match: { isActive: true } },
-    {
-      $group: {
-        _id: '$category',
-        count: { $sum: 1 },
+    // Products by category
+    const productsByCategory = await Product.aggregate([
+      { $match: { isActive: true } },
+      {
+        $group: {
+          _id: '$category',
+          count: { $sum: 1 },
+        },
       },
-    },
-    {
-      $lookup: {
-        from: 'categories',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'category',
+      {
+        $lookup: {
+          from: 'categories',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'category',
+        },
       },
-    },
-    { $unwind: '$category' },
-    {
-      $project: {
-        _id: 0,
-        category: '$category.name',
-        count: 1,
+      { $unwind: { path: '$category', preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          category: { $ifNull: ['$category.name', 'Uncategorized'] },
+          count: 1,
+        },
       },
-    },
-  ]);
+    ]);
 
-  // Top selling products
-  const topSelling = await Product.find({ isActive: true })
-    .sort({ sold: -1 })
-    .limit(10)
-    .select('name sold price images');
+    // Top selling products
+    const topSelling = await Product.find({ isActive: true })
+      .sort({ sold: -1 })
+      .limit(10)
+      .select('name sold price images');
 
-  res.json({
-    success: true,
-    data: {
-      totalProducts,
-      activeProducts,
-      featuredProducts,
-      outOfStock,
-      lowStock,
-      productsByCategory,
-      topSelling,
-    },
-  });
+    res.json({
+      success: true,
+      data: {
+        totalProducts,
+        activeProducts,
+        featuredProducts,
+        outOfStock,
+        lowStock,
+        productsByCategory,
+        topSelling,
+      },
+    });
+  } catch (error) {
+    console.error('Product stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
 });
 
 module.exports = {
