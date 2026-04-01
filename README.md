@@ -25,7 +25,6 @@ This is a full-stack e-commerce platform built with modern technologies, featuri
 
 ## 🏗️ System Architecture
 
-```
 ┌─────────────────────────────────────────────────────────┐
 │                    CLIENT LAYER (React)                 │
 │  ┌──────────────────────────────────────────────────┐  │
