@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -70,8 +72,8 @@ const AdminDashboard = () => {
         )}
       </div>
       <div>
-        <p className="text-gray-600 text-sm font-medium mb-1">{label}</p>
-        <p className={`text-3xl font-bold ${color}`}>{value}</p>
+        <p className="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-1 opacity-80">{label}</p>
+        <p className={`text-4xl font-bold tracking-tight ${color}`}>{value}</p>
       </div>
     </div>
   );
@@ -109,12 +111,12 @@ const AdminDashboard = () => {
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="mb-4 lg:mb-0">
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center">
+              <h1 className="text-4xl font-bold text-gray-900 flex items-center tracking-tight">
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   📊 Dashboard
                 </span>
               </h1>
-              <p className="text-gray-600 mt-2 text-lg">
+              <p className="text-gray-500 mt-2 text-lg font-medium">
                 Tổng quan hoạt động cửa hàng và phân tích dữ liệu
               </p>
             </div>
@@ -181,28 +183,28 @@ const AdminDashboard = () => {
               title="Thêm sản phẩm"
               description="Tạo sản phẩm mới"
               color="bg-blue-100 text-blue-600"
-              onClick={() => window.location.href = '/admin/products/new'}
+              onClick={() => navigate('/admin/products/new')}
             />
             <QuickActionCard
               icon="📋"
               title="Quản lý đơn hàng"
               description="Xem và xử lý đơn hàng"
               color="bg-green-100 text-green-600"
-              onClick={() => window.location.href = '/admin/orders'}
+              onClick={() => navigate('/admin/orders')}
             />
             <QuickActionCard
               icon="👥"
               title="Quản lý người dùng"
               description="Xem danh sách người dùng"
               color="bg-purple-100 text-purple-600"
-              onClick={() => window.location.href = '/admin/users'}
+              onClick={() => navigate('/admin/users')}
             />
             <QuickActionCard
               icon="🚚"
               title="Duyệt Shipper"
               description="Phê duyệt đăng ký shipper"
               color="bg-orange-100 text-orange-600"
-              onClick={() => window.location.href = '/admin/shipper-applications'}
+              onClick={() => navigate('/admin/shipper-applications')}
             />
           </div>
         </div>
@@ -266,7 +268,7 @@ const AdminDashboard = () => {
                 {stats?.products?.topSelling?.slice(0, 5).map((product, index) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white ${
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-white shadow-sm ${
                         index === 0 ? 'bg-yellow-500' : 
                         index === 1 ? 'bg-gray-400' : 
                         index === 2 ? 'bg-orange-500' : 'bg-blue-500'

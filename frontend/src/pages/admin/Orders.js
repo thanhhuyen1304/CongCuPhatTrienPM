@@ -11,16 +11,20 @@ import {
   ArrowPathIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  ChevronDownIcon,
   CalendarDaysIcon,
   CurrencyDollarIcon,
   UserIcon,
   TruckIcon,
   ClockIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  UserPlusIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { PrinterIcon, MapIcon } from '@heroicons/react/24/outline';
+import { FixedSizeList } from 'react-window';
+import OrderPrint from '../../components/OrderPrint';
+import AdminOrderMap from '../../components/AdminOrderMap';
 
 const AdminOrders = () => {
   const navigate = useNavigate();
@@ -35,6 +39,8 @@ const AdminOrders = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [paymentStatus, setPaymentStatus] = useState('');
+  const [printingOrder, setPrintingOrder] = useState(null);
+  const [trackingOrder, setTrackingOrder] = useState(null);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -74,9 +80,19 @@ const AdminOrders = () => {
     }
   }, [page, status, searchTerm, paymentStatus, dateRange, t]);
 
+  const fetchOrderStats = useCallback(async () => {
+    try {
+      const statsResponse = await api.get('/orders/admin/stats');
+      setOrderStats(statsResponse.data.data);
+    } catch (error) {
+      console.error('Stats error:', error);
+    }
+  }, []);
+
   useEffect(() => {
+    fetchOrderStats();
     fetchOrders();
-  }, [fetchOrders]);
+  }, [fetchOrderStats, fetchOrders]);
 
   // Setup real-time updates
   useEffect(() => {
@@ -116,16 +132,25 @@ const AdminOrders = () => {
       socketService.off('order_status_updated', handleOrderStatusUpdate);
       socketService.off('new_order', handleNewOrder);
     };
-  }, []);
+  }, [fetchOrders, fetchOrderStats]);
 
-  const fetchOrderStats = useCallback(async () => {
+  const handleStatusUpdate = async (orderId, newStatus) => {
     try {
-      const statsResponse = await api.get('/orders/admin/stats');
-      setOrderStats(statsResponse.data.data);
+      const loadingToast = toast.loading('Sửa trạng thái...');
+      const response = await api.put(`/orders/${orderId}/status`, { status: newStatus });
+      toast.dismiss(loadingToast);
+      
+      if (response.data.success) {
+        const newStatusLabel = getStatusConfig(newStatus).label;
+        toast.success(`Đã chuyển trạng thái sang ${newStatusLabel}`);
+        // Refresh orders and stats
+        fetchOrders();
+        fetchOrderStats();
+      }
     } catch (error) {
-      console.error('Stats error:', error);
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
     }
-  }, []);
+  };
 
   const getStatusConfig = (status) => {
     const configs = {
@@ -181,24 +206,70 @@ const AdminOrders = () => {
     setPage(1);
   };
 
-  const statusTranslations = {
-    pending: t('orders.pending'),
-    confirmed: t('orders.confirmed'),
-    processing: t('orders.processing'),
-    shipped: t('orders.shipped'),
-    delivered: t('orders.delivered'),
-    cancelled: t('orders.cancelled'),
-  };
-
-  const paymentStatusTranslations = {
-    pending: t('orders.pending'),
-    paid: t('common.success'),
-    failed: t('common.error'),
-    refunded: t('common.refunded'),
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hidden print component */}
+      {printingOrder && (
+        <OrderPrint 
+          order={printingOrder} 
+          onComplete={() => setPrintingOrder(null)} 
+        />
+      )}
+
+      {/* Tracking Map Modal */}
+      {trackingOrder && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
+              aria-hidden="true" 
+              onClick={() => setTrackingOrder(null)}
+            ></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex justify-between items-center mb-4 border-b pb-4">
+                  <h3 className="text-xl font-bold text-gray-900 flex items-center">
+                    <MapIcon className="w-6 h-6 mr-2 text-blue-600" />
+                    Theo dõi đơn hàng: {trackingOrder.orderNumber}
+                  </h3>
+                  <button 
+                    onClick={() => setTrackingOrder(null)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <XMarkIcon className="w-6 h-6" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-600 uppercase font-bold mb-1">Trạng thái</p>
+                    <p className="font-semibold text-blue-900">{getStatusConfig(trackingOrder.status).label}</p>
+                  </div>
+                  <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-100">
+                    <p className="text-xs text-emerald-600 uppercase font-bold mb-1">Khách hàng</p>
+                    <p className="font-semibold text-emerald-900">{trackingOrder.shippingAddress?.fullName}</p>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-lg border border-indigo-100">
+                    <p className="text-xs text-indigo-600 uppercase font-bold mb-1">Shipper</p>
+                    <p className="font-semibold text-indigo-900">{trackingOrder.shipper?.name || 'Đang chờ nhận đơn'}</p>
+                  </div>
+                </div>
+                <AdminOrderMap order={trackingOrder} />
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setTrackingOrder(null)}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -408,218 +479,228 @@ const AdminOrders = () => {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {orders.map((order) => {
-                      const statusConfig = getStatusConfig(order.status);
-                      const paymentConfig = getPaymentStatusConfig(order.paymentStatus);
-                      const StatusIcon = statusConfig.icon;
-                      const PaymentIcon = paymentConfig.icon;
-                      
-                      return (
-                        <tr key={order._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div>
-                              <div className="text-xs font-medium text-gray-900">{order.orderNumber}</div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                    {orders.length > 50 ? (
+                      <FixedSizeList
+                        height={600}
+                        itemCount={orders.length}
+                        itemSize={80}
+                        width="100%"
+                      >
+                        {({ index, style }) => {
+                          const order = orders[index];
+                          const statusConfig = getStatusConfig(order.status);
+                          const paymentConfig = getPaymentStatusConfig(order.paymentStatus);
+                          const StatusIcon = statusConfig.icon;
+                          const PaymentIcon = paymentConfig.icon;
+                          
+                          return (
+                            <div style={style} className="flex border-b hover:bg-gray-50 transition-colors px-3 py-4">
+                              <div className="w-24 shrink-0">
+                                <div className="text-xs font-medium text-gray-900">{order.orderNumber}</div>
+                                <div className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</div>
                               </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-8 w-8">
-                                <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                                  <UserIcon className="h-4 w-4 text-gray-500" />
-                                </div>
+                              <div className="flex-1 px-4">
+                                <div className="text-xs font-medium text-gray-900 truncate">{order.shippingAddress?.fullName || 'N/A'}</div>
+                                <div className="text-xs text-gray-500 truncate">{order.shippingAddress?.address}</div>
                               </div>
-                              <div className="ml-3">
-                                <div className="text-xs font-medium text-gray-900">
-                                  {order.shippingAddress?.fullName || order.user?.name || 'N/A'}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {order.shippingAddress?.phone || order.user?.email || 'N/A'}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <CurrencyDollarIcon className="h-3 w-3 text-green-500 mr-1" />
-                              <span className="text-xs font-semibold text-gray-900">
+                              <div className="w-32 px-4 text-xs font-semibold text-gray-900">
                                 {formatVND(order.totalPrice)}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {statusConfig.label}
-                            </span>
-                            {['shipped', 'delivered'].includes(order.status) && (
-                              <div className="mt-1">
-                                <span className="text-xs text-gray-500">👤 Shipper</span>
                               </div>
-                            )}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap">
-                            {(['shipped', 'delivered'].includes(order.status)) ? (
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-6 w-6">
-                                  <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
-                                    <TruckIcon className="h-3 w-3 text-white" />
-                                  </div>
-                                </div>
-                                <div className="ml-2">
-                                  <div className="text-xs font-medium text-gray-900">
-                                    {order.shipper?.name || 'Nguyễn Văn Shipper'}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {order.shipper?.phone || '0123456789'}
-                                  </div>
-                                </div>
+                              <div className="w-32 px-4">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
+                                  <StatusIcon className="w-3 h-3 mr-1" />
+                                  {statusConfig.label}
+                                </span>
                               </div>
-                            ) : order.shipper && order.status !== 'pending' && order.status !== 'processing' ? (
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-6 w-6">
-                                  <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
-                                    <TruckIcon className="h-3 w-3 text-white" />
-                                  </div>
-                                </div>
-                                <div className="ml-2">
-                                  <div className="text-xs font-medium text-gray-900">{order.shipper?.name || 'N/A'}</div>
-                                  <div className="text-xs text-gray-500">{order.shipper?.phone || 'N/A'}</div>
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                                <ClockIcon className="w-3 h-3 mr-1" />
-                                {order.status === 'confirmed' ? 'Chờ lấy' : 'Chưa có'}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <PaymentIcon className={`w-3 h-3 mr-1 ${paymentConfig.color}`} />
-                              <span className={`text-xs font-medium ${paymentConfig.color}`}>
-                                {paymentConfig.label}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-500">
-                            <div className="flex items-center">
-                              <CalendarDaysIcon className="w-3 h-3 mr-1" />
-                              {new Date(order.createdAt).toLocaleDateString('vi-VN')}
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 whitespace-nowrap">
-                            <div className="flex flex-col space-y-2">
-                              {/* View Details Button */}
-                              <button
-                                onClick={() => navigate(`/orders/${order._id}`)}
-                                className="inline-flex items-center justify-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-xs font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                                title="Xem chi tiết đơn hàng"
-                              >
-                                <EyeIcon className="w-3.5 h-3.5 mr-1.5" />
-                                Chi tiết
-                              </button>
-                              
-                              {/* Status Update Dropdown */}
-                              {!['delivered', 'cancelled'].includes(order.status) && !['shipped', 'delivered'].includes(order.status) && (
-                                <div className="relative">
-                                  <select
-                                    value={order.status}
-                                    onChange={(e) => {
-                                      const newStatus = e.target.value;
-                                      if (newStatus !== order.status) {
-                                        // Check if admin can update this status
-                                        const adminCannotUpdate = ['shipped', 'delivered'];
-                                        if (adminCannotUpdate.includes(newStatus)) {
-                                          toast.error(`Admin không thể cập nhật trạng thái "${getStatusConfig(newStatus).label}". Chỉ shipper mới có thể cập nhật trạng thái giao hàng.`);
-                                          return;
-                                        }
-
-                                        // Prevent backward transitions
-                                        const statusOrder = {
-                                          'pending': 0,
-                                          'confirmed': 1,
-                                          'shipped': 2,
-                                          'delivered': 3,
-                                          'cancelled': 4
-                                        };
-
-                                        const currentOrder = statusOrder[order.status] || 0;
-                                        const newOrder = statusOrder[newStatus] || 0;
-
-                                        if (newOrder < currentOrder && newStatus !== 'cancelled') {
-                                          toast.error(`Không thể cập nhật trạng thái lui về từ "${getStatusConfig(order.status).label}" sang "${getStatusConfig(newStatus).label}"`);
-                                          return;
-                                        }
-
-                                        if (window.confirm(`Cập nhật trạng thái đơn hàng thành "${getStatusConfig(newStatus).label}"?`)) {
-                                          api.put(`/orders/${order._id}/status`, { 
-                                            status: newStatus,
-                                            note: `Updated by admin to ${getStatusConfig(newStatus).label}`
-                                          }).then(() => {
-                                            toast.success('Cập nhật thành công!');
-                                            fetchOrders();
-                                          }).catch(err => {
-                                            toast.error(err.response?.data?.message || 'Có lỗi xảy ra');
-                                          });
-                                        }
+                              <div className="w-48 px-4 flex flex-col space-y-1">
+                                <button
+                                  onClick={() => navigate(`/orders/${order._id}`)}
+                                  className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                >
+                                  Chi tiết
+                                </button>
+                                <button
+                                  onClick={() => setPrintingOrder(order)}
+                                  className="text-gray-600 hover:text-gray-800 text-xs font-medium"
+                                >
+                                  In đơn
+                                </button>
+                                {order.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleStatusUpdate(order._id, 'confirmed')}
+                                    className="text-emerald-600 hover:text-emerald-800 text-xs font-medium"
+                                  >
+                                    Xác nhận
+                                  </button>
+                                )}
+                                {['pending', 'confirmed'].includes(order.status) && (
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Bạn có chắc muốn hủy đơn hàng này?')) {
+                                        handleStatusUpdate(order._id, 'cancelled');
                                       }
                                     }}
-                                    className={`w-full text-xs rounded-full font-medium py-1.5 px-3 border cursor-pointer transition-all duration-200 appearance-none ${getStatusConfig(order.status).color}`}
-                                    style={{
-                                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='currentColor' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                                      backgroundPosition: 'right 0.5rem center',
-                                      backgroundRepeat: 'no-repeat',
-                                      backgroundSize: '1.2em 1.2em',
-                                      paddingRight: '2.2rem'
-                                    }}
+                                    className="text-red-600 hover:text-red-800 text-xs font-medium"
                                   >
-                                    {(() => {
-                                      const adminAllowedStatuses = ['pending', 'confirmed', 'cancelled'];
-                                      const validTransitions = {
-                                        'pending': [
-                                          { value: 'pending', label: 'Chờ xác nhận' },
-                                          { value: 'confirmed', label: 'Đã xác nhận' },
-                                          { value: 'cancelled', label: 'Đã hủy' }
-                                        ],
-                                        'confirmed': [
-                                          { value: 'confirmed', label: 'Đã xác nhận' },
-                                          { value: 'cancelled', label: 'Đã hủy' }
-                                        ]
-                                      };
-
-                                      const options = validTransitions[order.status] || [
-                                        { value: order.status, label: getStatusConfig(order.status).label }
-                                      ];
-
-                                      const filteredOptions = options.filter(option => 
-                                        adminAllowedStatuses.includes(option.value) || option.value === order.status
-                                      );
-
-                                      return filteredOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                          {option.label}
-                                        </option>
-                                      ));
-                                    })()}
-                                  </select>
-                                </div>
-                              )}
-                              
-                              {/* Completed Status Badge */}
-                              {['delivered', 'cancelled'].includes(order.status) && (
-                                <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200">
-                                  <CheckCircleIcon className="w-3.5 h-3.5 mr-1.5" />
-                                  {order.status === 'delivered' ? 'Hoàn thành' : 'Đã hủy'}
-                                </div>
-                              )}
+                                    Hủy đơn
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                          );
+                        }}
+                      </FixedSizeList>
+                    ) : (
+                      orders.map((order) => {
+                        const statusConfig = getStatusConfig(order.status);
+                        const paymentConfig = getPaymentStatusConfig(order.paymentStatus);
+                        const StatusIcon = statusConfig.icon;
+                        const PaymentIcon = paymentConfig.icon;
+                        
+                        return (
+                          <tr key={order._id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <div>
+                                <div className="text-xs font-medium text-gray-900">{order.orderNumber}</div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-8 w-8">
+                                  <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <UserIcon className="h-4 w-4 text-gray-500" />
+                                  </div>
+                                </div>
+                                <div className="ml-3">
+                                  <div className="text-xs font-medium text-gray-900">
+                                    {order.shippingAddress?.fullName || order.user?.name || 'N/A'}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {order.shippingAddress?.phone || order.user?.email || 'N/A'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <CurrencyDollarIcon className="h-3 w-3 text-green-500 mr-1" />
+                                <span className="text-xs font-semibold text-gray-900">
+                                  {formatVND(order.totalPrice)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
+                                {statusConfig.label}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              {(['shipped', 'delivered'].includes(order.status)) ? (
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-6 w-6">
+                                    <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
+                                      <TruckIcon className="h-3 w-3 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="ml-2">
+                                    <div className="text-xs font-medium text-gray-900">
+                                      {order.shipper?.name || 'Nguyễn Văn Shipper'}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {order.shipper?.phone || '0123456789'}
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : order.shipper && order.status !== 'pending' && order.status !== 'processing' ? (
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-6 w-6">
+                                    <div className="h-6 w-6 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 flex items-center justify-center">
+                                      <TruckIcon className="h-3 w-3 text-white" />
+                                    </div>
+                                  </div>
+                                  <div className="ml-2">
+                                    <div className="text-xs font-medium text-gray-900">{order.shipper?.name || 'N/A'}</div>
+                                    <div className="text-xs text-gray-500">{order.shipper?.phone || 'N/A'}</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                  <ClockIcon className="w-3 h-3 mr-1" />
+                                  {order.status === 'confirmed' ? 'Chờ lấy' : 'Chưa có'}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <PaymentIcon className={`w-3 h-3 mr-1 ${paymentConfig.color}`} />
+                                <span className={`text-xs font-medium ${paymentConfig.color}`}>
+                                  {paymentConfig.label}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-500">
+                              <div className="flex items-center">
+                                <CalendarDaysIcon className="w-3 h-3 mr-1" />
+                                {new Date(order.createdAt).toLocaleDateString('vi-VN')}
+                              </div>
+                            </td>
+                            <td className="px-3 py-3 whitespace-nowrap">
+                              <div className="flex flex-col space-y-2">
+                                <button
+                                  onClick={() => navigate(`/orders/${order._id}`)}
+                                  className="inline-flex items-center justify-center px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-xs font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm"
+                                >
+                                  <EyeIcon className="w-3.5 h-3.5 mr-1.5" />
+                                  Chi tiết
+                                </button>
+                                <button
+                                  onClick={() => setPrintingOrder(order)}
+                                  className="inline-flex items-center justify-center px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg text-xs font-medium hover:bg-gray-50"
+                                >
+                                  <PrinterIcon className="w-3.5 h-3.5 mr-1.5" />
+                                  In đơn
+                                </button>
+                                 {['confirmed', 'shipped', 'delivered'].includes(order.status) && (
+                                   <button
+                                     onClick={() => setTrackingOrder(order)}
+                                     className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-all duration-200 shadow-sm"
+                                   >
+                                     <MapIcon className="w-3.5 h-3.5 mr-1.5" />
+                                     Theo dõi
+                                   </button>
+                                 )}
+                                 {order.status === 'pending' && (
+                                   <button
+                                     onClick={() => handleStatusUpdate(order._id, 'confirmed')}
+                                     className="inline-flex items-center justify-center px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-medium hover:bg-emerald-600 transition-all duration-200 shadow-sm"
+                                   >
+                                     <CheckIcon className="w-3.5 h-3.5 mr-1.5" />
+                                     Xác nhận
+                                   </button>
+                                 )}
+                                 {['pending', 'confirmed'].includes(order.status) && (
+                                   <button
+                                     onClick={() => {
+                                       if (window.confirm('Bạn có chắc muốn hủy đơn hàng này?')) {
+                                         handleStatusUpdate(order._id, 'cancelled');
+                                       }
+                                     }}
+                                     className="inline-flex items-center justify-center px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-medium hover:bg-red-600 transition-all duration-200 shadow-sm"
+                                   >
+                                     <XMarkIcon className="w-3.5 h-3.5 mr-1.5" />
+                                     Hủy đơn
+                                   </button>
+                                 )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>

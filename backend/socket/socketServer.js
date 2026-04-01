@@ -9,13 +9,10 @@ const initializeSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
+        'http://localhost:3000',
         'http://localhost:3001',
         'http://localhost:3002',
-        // Allow React Native mobile app requests
-        'http://172.20.10.3:3000',
-        'http://10.15.3.62:3000',
-        'http://10.137.133.162:3000',
+        'http://192.168.1.42:3000',      // Current WiFi IP (UPDATED)
       ],
       methods: ['GET', 'POST'],
       credentials: true,
@@ -102,6 +99,27 @@ const initializeSocket = (server) => {
     socket.on('leave_order', (orderId) => {
       socket.leave(`order_${orderId}`);
       console.log(`📦 ${socket.userName} left order room: ${orderId}`);
+    });
+
+    // Handle real-time location updates (from shippers)
+    socket.on('update_location', (data) => {
+      if (socket.userRole === 'shipper') {
+        const locationData = {
+          shipperId: socket.userId,
+          shipperName: socket.userName,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          timestamp: new Date()
+        };
+        
+        // Broadcast to all admins
+        io.to('admins').emit('shipper_location_updated', locationData);
+        
+        // Also broadcast to specific order rooms if the shipper is assigned
+        if (data.orderId) {
+          io.to(`order_${data.orderId}`).emit('shipper_location_updated', locationData);
+        }
+      }
     });
 
     // Handle disconnect

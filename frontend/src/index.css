@@ -7,6 +7,17 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+
+.font-heading {
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.022em;
+}
+
+.text-premium {
+  @apply tracking-tight font-semibold;
 }
 
 /* Custom scrollbar */

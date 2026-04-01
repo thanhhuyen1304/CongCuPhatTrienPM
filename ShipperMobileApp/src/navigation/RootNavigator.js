@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setUserFromCache, setupAuthEventListener, getMe, forceLogout } from '../store/slices/authSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useRealTimeOrders from '../hooks/useRealTimeOrders';
-import { Alert } from 'react-native';
+import { Alert, TouchableOpacity } from 'react-native';
 
 // Screens
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -123,10 +123,17 @@ const DeliveryTabs = () => {
         tabBarInactiveTintColor: '#6b7280',
         headerStyle: {
           backgroundColor: '#3b82f6',
+          elevation: 4,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.15,
+          shadowRadius: 4,
         },
         headerTintColor: '#fff',
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '800',
+          fontSize: 18,
+          letterSpacing: 0.5,
         },
         tabBarStyle: {
           backgroundColor: '#ffffff',
@@ -141,12 +148,34 @@ const DeliveryTabs = () => {
       <Tab.Screen
         name="OrdersTab"
         component={OrdersScreen}
-        options={{
+        options={({ navigation }) => ({
           title: 'Đơn hàng',
+          headerTitleAlign: 'center',
+          headerLeft: () => (
+            <TouchableOpacity 
+              style={{ marginLeft: 16 }}
+              onPress={() => navigation.goBack()}
+            >
+              <Icon name="arrow-left" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ),
+          headerRight: () => (
+            <TouchableOpacity 
+              style={{ marginRight: 16 }}
+              onPress={() => {
+                // We'll rely on the screen's own refresh logic if possible, 
+                // but usually tab headers are static. 
+                // For now, let's just trigger a generic refresh event or log.
+                console.log('Header Refresh triggered');
+              }}
+            >
+              <Icon name="refresh" size={24} color="#ffffff" />
+            </TouchableOpacity>
+          ),
           tabBarIcon: ({ color, size }) => (
             <Icon name="clipboard-list" color={color} size={size} />
           ),
-        }}
+        })}
       />
       <Tab.Screen
         name="DashboardTab"

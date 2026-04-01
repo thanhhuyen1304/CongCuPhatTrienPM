@@ -46,13 +46,10 @@ process.on('unhandledRejection', (err) => {
    Middleware
 ======================= */
 const allowedOrigins = [
-  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',
-  // Allow React Native mobile app requests
-  'http://10.15.3.62:3000',        // Current WiFi IP (UPDATED)
-  'http://10.137.133.162:3000',    // Previous WiFi IP
-  'http://172.20.10.3:3000',       // Old WiFi IP
+  'http://192.168.1.42:3000',      // Current WiFi IP (UPDATED)
 ];
 
 app.use(

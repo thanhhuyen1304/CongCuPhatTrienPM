@@ -36,10 +36,9 @@ const findWorkingApiUrl = async () => {
   
   console.error('❌ No working API URL found from:', urlsToTest);
   console.error('💡 Troubleshooting tips:');
-  console.error('   1. Make sure backend server is running (npm run dev in backend folder)');
-  console.error('   2. Check Windows Firewall - run add-firewall-rule.bat as Administrator');
-  console.error('   3. Ensure both devices are on the same WiFi network');
-  console.error('   4. Current WiFi IP should be 172.20.10.2 (check ipconfig)');
+  console.error('   1. Make sure backend server is running');
+  console.error('   2. Ensure Ngrok or Public Tunnel is active');
+  console.error('   3. Check internet connection on the device');
   
   // Don't throw error, just return null and let the caller handle it
   return null;

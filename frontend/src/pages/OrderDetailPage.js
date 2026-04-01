@@ -8,6 +8,7 @@ import socketService from '../services/socketService';
 import { formatVND } from '../utils/currency';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import AdminOrderMap from '../components/AdminOrderMap';
 
 const OrderDetailPage = () => {
   const { id } = useParams();
@@ -191,6 +192,22 @@ const OrderDetailPage = () => {
               </div>
             </div>
           </div>
+          {/* Real-time Tracking Map (Visible when shipped/delivered) */}
+          {['shipped', 'delivered'].includes(order.status) && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 bg-blue-50 border-b flex justify-between items-center">
+                <h3 className="font-semibold text-blue-900">Theo dõi giao hàng thực tế</h3>
+                {order.realTimeDistances?.toCustomer !== undefined && (
+                  <span className="text-sm font-medium text-blue-700">
+                    Cách chỗ bạn: {order.realTimeDistances.toCustomer} km
+                  </span>
+                )}
+              </div>
+              <div className="p-4">
+                <AdminOrderMap order={order} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Order Summary Sidebar */}
@@ -216,6 +233,12 @@ const OrderDetailPage = () => {
                   {order.shippingPrice?.toLocaleString('vi-VN')} ₫
                 </span>
               </div>
+              {order.promotion?.discount > 0 && (
+                <div className="flex justify-between text-sm text-red-600 font-medium">
+                  <span>Khuyến mãi ({order.promotion.code}):</span>
+                  <span>-{order.promotion.discount?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold text-gray-900">Tổng tiền:</span>
