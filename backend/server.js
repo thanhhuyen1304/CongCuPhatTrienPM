@@ -50,6 +50,7 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:3002',
   'http://192.168.1.42:3000',      // Current WiFi IP (UPDATED)
+  'https://nonfluctuating-uniaxially-laylah.ngrok-free.dev', // Ngrok URL (UPDATED)
 ];
 
 app.use(
@@ -76,6 +77,12 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
+// Ngrok bypass middleware (ensures all responses have the skip header)
+app.use((req, res, next) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true');
+  next();
+});
 
 /* =======================
    MongoDB Atlas Connection
