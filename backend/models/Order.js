@@ -112,6 +112,20 @@ const orderSchema = new mongoose.Schema(
       address: { type: String },
       updatedAt: { type: Date, default: Date.now },
     },
+    storeLocation: {
+      latitude: { type: Number, default: 10.7740 }, // Default store lat (District 1)
+      longitude: { type: Number, default: 106.7010 }, // Default store long (HCM)
+      address: { type: String, default: 'Store ABC, 456 Nguyen Hue St, District 1, Ho Chi Minh City' },
+    },
+    promotion: {
+      code: { type: String },
+      discount: { type: Number, default: 0 },
+      discountType: { type: String, enum: ['percentage', 'fixed'], default: 'fixed' },
+    },
+    realTimeDistances: {
+      toStore: { type: Number, default: 0 },
+      toCustomer: { type: Number, default: 0 },
+    },
     deliveredAt: {
       type: Date,
     },

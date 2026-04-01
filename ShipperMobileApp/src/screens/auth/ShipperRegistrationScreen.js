@@ -14,6 +14,7 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { API_CONFIG } from '../../config/api';
 
 const { width } = Dimensions.get('window');
 
@@ -82,7 +83,7 @@ const ShipperRegistrationScreen = ({ navigation }) => {
     
     try {
       // Call API to submit shipper application
-      const response = await fetch('http://10.15.3.62:5000/api/auth/apply-shipper', {
+      const response = await fetch(`${API_CONFIG.BASE_URL}/auth/apply-shipper`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

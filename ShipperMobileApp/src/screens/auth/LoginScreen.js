@@ -48,7 +48,7 @@ const LoginScreen = ({ navigation }) => {
       let errorMessage = 'Login failed';
       
       if (err.includes('Network Error') || err.includes('NETWORK_ERROR')) {
-        errorMessage = 'Cannot connect to server. Please:\n\n1. Make sure backend server is running\n2. Run "add-firewall-rule.bat" as Administrator\n3. Check both devices are on same WiFi\n4. Try "Test Connection" button below\n\nCurrent WiFi IP should be: 172.20.10.2';
+        errorMessage = 'Cannot connect to server. Please:\n\n1. Make sure backend server is running\n2. Ensure Ngrok or Public Tunnel is active\n3. Check your internet connection';
       } else if (err.includes('timeout')) {
         errorMessage = 'Connection timeout. The server might be unreachable or slow.';
       } else if (err.includes('Invalid credentials') || err.includes('Unauthorized')) {
@@ -192,7 +192,7 @@ const LoginScreen = ({ navigation }) => {
                     } else {
                       Alert.alert(
                         'Connection Test Failed',
-                        '❌ No working API URL found.\n\nTroubleshooting Steps:\n\n1. Backend Server:\n   • Open terminal in backend folder\n   • Run: npm run dev\n   • Should show "Server running on port 5000"\n\n2. Windows Firewall:\n   • Right-click "add-firewall-rule.bat"\n   • Select "Run as administrator"\n   • Should show "Firewall rule added successfully"\n\n3. Network:\n   • Both devices on same WiFi\n   • WiFi IP should be 172.20.10.2\n   • Check with: ipconfig\n\n4. Test again after completing steps above',
+                        '❌ No working API URL found.\n\nTroubleshooting Steps:\n\n1. Backend Server:\n   • Open terminal in backend folder\n   • Run: npm run dev\n\n2. Public Tunnel (Ngrok):\n   • Ensure ngrok http 5000 is running\n   • Ensure the URL in config/api.js is correct\n\n3. Internet:\n   • Check your device internet connection\n\n4. Test again after completing steps above',
                         [{ text: 'OK' }]
                       );
                     }

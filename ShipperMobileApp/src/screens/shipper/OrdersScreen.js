@@ -14,9 +14,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Geolocation from '@react-native-community/geolocation';
 import MapPreview from '../../components/MapPreview';
 import shipperService from '../../services/shipperService';
 import socketService from '../../services/socketService';
+import * as mapService from '../../services/mapService';
 import { formatVND } from '../../utils/currency';
 import { forceLogout } from '../../store/slices/authSlice';
 
@@ -232,6 +234,57 @@ const OrdersScreen = ({ navigation }) => {
   const [allOrders, setAllOrders] = useState([]); // Store all orders for counting
   const [refreshing, setRefreshing] = useState(false);
   const [deliveryStartedOrders, setDeliveryStartedOrders] = useState(new Set()); // Track which orders have started delivery
+  const [shipperLocation, setShipperLocation] = useState(null);
+  const [realTimeMetrics, setRealTimeMetrics] = useState({});
+  
+  // Track shipper location in real-time
+  useEffect(() => {
+    if (isShipper) {
+      console.log('📡 Starting real-time location tracking...');
+      
+      const watchId = Geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 Location updated:', latitude, longitude);
+          setShipperLocation({ latitude, longitude });
+          
+          // Send location to server via socket for admin tracking
+          socketService.emit('update_location', { latitude, longitude });
+        },
+        (error) => console.error('❌ Geolocation error:', error),
+        { enableHighAccuracy: true, distanceFilter: 10, interval: 10000, fastestInterval: 5000 }
+      );
+      
+      return () => {
+        console.log('📡 Stopping location tracking...');
+        Geolocation.clearWatch(watchId);
+      };
+    }
+  }, [isShipper]);
+
+  // Update distances when location or orders change
+  useEffect(() => {
+    if (shipperLocation && allOrders.length > 0) {
+      updateAllDistances();
+    }
+  }, [shipperLocation, allOrders]);
+
+  const updateAllDistances = async () => {
+    const metrics = {};
+    for (const order of allOrders) {
+      if (order.status === 'confirmed' || order.status === 'shipped') {
+        const storePos = order.storeLocation || { latitude: 10.7740, longitude: 106.7010 };
+        const destPos = {
+          latitude: order.shippingAddress?.latitude || 10.8435,
+          longitude: order.shippingAddress?.longitude || 106.7135
+        };
+        
+        const dists = await mapService.calculateTwoStageDistance(shipperLocation, storePos, destPos);
+        metrics[order._id] = dists;
+      }
+    }
+    setRealTimeMetrics(metrics);
+  };
   
   // Simple test function to load orders directly
   const testLoadOrders = async () => {
@@ -367,7 +420,7 @@ const OrdersScreen = ({ navigation }) => {
               await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
               Alert.alert(
                 'Phiên đăng nhập hết hạn',
-                'Token đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.',
+                'Vui lòng đăng nhập lại để tiếp tục.',
                 [
                   {
                     text: 'Đăng nhập lại',
@@ -1051,10 +1104,29 @@ const OrdersScreen = ({ navigation }) => {
     
     // Handle both API format and mock format
     const customer = item.user || item.customer || {};
-    const customerName = customer.name || 'Khách hàng';
+    // Priority: shippingAddress.fullName > shippingAddress.name > customer.name > customer.username
+    const customerName = item.shippingAddress?.fullName || 
+                        item.shippingAddress?.name || 
+                        customer.name || 
+                        customer.username || 
+                        'Khách hàng';
     const customerAvatar = customer.avatar || 'https://via.placeholder.com/24x24/e5e7eb/9ca3af?text=?';
-    const address = item.shippingAddress?.street + ', ' + item.shippingAddress?.city || item.address || 'Địa chỉ giao hàng';
+    const address = item.shippingAddress?.address || (item.shippingAddress?.street ? item.shippingAddress.street + ', ' + item.shippingAddress.city : item.address) || 'Địa chỉ giao hàng';
     const totalPrice = item.totalPrice || item.total || 0;
+    
+    // Calculate dynamic metrics
+    const storeCoords = { latitude: 10.7740, longitude: 106.7010 };
+    const destCoords = {
+      latitude: item.shippingAddress?.latitude || item.latitude || 10.8435,
+      longitude: item.shippingAddress?.longitude || item.longitude || 106.7135
+    };
+    const calculatedDist = mapService.calculateDistance(storeCoords, destCoords);
+    const displayDistance = item.distance || mapService.formatDistance(calculatedDist);
+    const displayTime = item.estimatedTime || mapService.estimateTravelTime(calculatedDist);
+    
+    // Calculate time to store if in pickup phase
+    const toStoreDist = realTimeMetrics[item._id]?.toStore;
+    const toStoreTime = toStoreDist ? mapService.estimateTravelTime(toStoreDist) : '...';
     
     return (
       <TouchableOpacity 
@@ -1086,7 +1158,6 @@ const OrdersScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Delivery Details */}
           <View style={styles.deliverySection}>
             <View style={styles.deliveryRow}>
               <Icon name="map-marker" size={16} color="#ef4444" />
@@ -1094,22 +1165,7 @@ const OrdersScreen = ({ navigation }) => {
                 {address}
               </Text>
             </View>
-            <View style={styles.deliveryMetrics}>
-              <View style={styles.metricItem}>
-                <Icon name="road-variant" size={14} color="#6b7280" />
-                <Text style={styles.metricText}>{item.distance || '2.5 km'}</Text>
-              </View>
-              <View style={styles.metricItem}>
-                <Icon name="clock-outline" size={14} color="#6b7280" />
-                <Text style={styles.metricText}>{item.estimatedTime || '15 phút'}</Text>
-              </View>
-              <View style={styles.metricItem}>
-                <Icon name="cash-multiple" size={14} color="#10b981" />
-                <Text style={[styles.metricText, { color: '#10b981', fontWeight: '600' }]}>
-                  {formatVND(totalPrice || 0)}
-                </Text>
-              </View>
-            </View>
+
             
             {/* Map Preview for in_progress orders */}
             <MapPreview 
@@ -1117,6 +1173,60 @@ const OrdersScreen = ({ navigation }) => {
               onPress={() => navigation.navigate('Map', { order: item })}
             />
           </View>
+
+          {/* Delivery Details */}
+          <View style={styles.metricsContainer}>
+            {/* Warehouse metrics - Split into distance and time */}
+            {['confirmed', 'processing'].includes(item.status) && (
+              <>
+                <View style={styles.metricItem}>
+                  <Icon name="store-outline" size={16} color="#3b82f6" />
+                  <Text style={styles.metricLabel}>Đến kho:</Text>
+                  <Text style={styles.metricValue}>
+                    {toStoreDist !== undefined ? `${toStoreDist} km` : '...'}
+                  </Text>
+                </View>
+                <View style={styles.metricItem}>
+                  <Icon name="clock-fast" size={16} color="#3b82f6" />
+                  <Text style={styles.metricLabel}>T.gian đến kho:</Text>
+                  <Text style={styles.metricValue}>
+                    {toStoreTime ? `${toStoreTime}` : '...'}
+                  </Text>
+                </View>
+              </>
+            )}
+            
+            {/* Delivery distance and time (Store to Customer) Combined */}
+            <View style={styles.metricItem}>
+              <Icon name="map-marker-distance" size={16} color="#10b981" />
+              <Text style={styles.metricLabel}>Giao:</Text>
+              <Text style={styles.metricValue}>
+                {realTimeMetrics[item._id]?.toCustomer !== undefined 
+                  ? `${realTimeMetrics[item._id].toCustomer} km` 
+                  : displayDistance}
+                {displayTime ? ` (${displayTime})` : ''}
+              </Text>
+            </View>
+            
+            {/* Price */}
+            <View style={styles.metricItem}>
+              <Icon name="cash-multiple" size={16} color="#10b981" />
+              <Text style={[styles.metricValue, { color: '#10b981', fontWeight: 'bold' }]}>
+                {formatVND(totalPrice || 0)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Promotion Info */}
+          {item.promotion && item.promotion.discount > 0 && (
+            <View style={styles.promoBadge}>
+              <Icon name="tag-outline" size={14} color="#f59e0b" />
+              <Text style={styles.promoText}>
+                Giảm: {formatVND(item.promotion.discount)} ({item.promotion.code})
+              </Text>
+            </View>
+          )}
+
 
           {/* Action Buttons */}
           <View style={styles.actionSection}>
@@ -1217,50 +1327,7 @@ const OrdersScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <View style={styles.headerTop}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Icon name="arrow-left" size={24} color="#ffffff" />
-            </TouchableOpacity>
-            <View style={styles.headerCenter}>
-              <Text style={styles.title}>
-                {isShipper ? 'Đơn hàng' : 'Đơn của tôi'}
-              </Text>
-              <Text style={styles.subtitle}>
-                {isShipper ? 'Quản lý giao hàng' : 'Lịch sử mua hàng'}
-              </Text>
-            </View>
-            
-            {isShipper ? (
-              <View style={styles.headerActions}>
-                <TouchableOpacity 
-                  style={styles.debugButton}
-                  onPress={testLoadOrders}
-                >
-                  <Icon name="bug" size={20} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.refreshButton}
-                  onPress={onRefresh}
-                >
-                  <Icon name="refresh" size={24} color="#ffffff" />
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity 
-                style={styles.refreshButton}
-                onPress={onRefresh}
-              >
-                <Icon name="refresh" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </View>
+      {/* Main Content */}
 
       {renderTabBar()}
 
@@ -1351,6 +1418,48 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  metricsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingVertical: 4,
+    gap: 16,
+    marginBottom: 12,
+    justifyContent: 'space-between',
+  },
+  metricItem: {
+    width: '46%', // Allows 2 items per row with gap
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metricLabel: {
+    fontSize: 13,
+    color: '#64748b',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  promoBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffbeb',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+    gap: 4,
+  },
+  promoText: {
+    fontSize: 12,
+    color: '#d97706',
+    fontWeight: '600',
   },
   debugButton: {
     width: 44,
@@ -1538,7 +1647,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   deliverySection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   deliveryRow: {
     flexDirection: 'row',
@@ -1552,21 +1661,30 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 20,
   },
-  deliveryMetrics: {
+  metricsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12, // Ensures spacing between items
     marginTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 12,
   },
   metricItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 6,
   },
-  metricText: {
+  metricLabel: {
     fontSize: 13,
     color: '#64748b',
-    marginLeft: 6,
     fontWeight: '500',
+  },
+  metricValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
   },
   actionSection: {
     flexDirection: 'row',
@@ -1574,6 +1692,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 8,
   },
   primaryButton: {
     flexDirection: 'row',

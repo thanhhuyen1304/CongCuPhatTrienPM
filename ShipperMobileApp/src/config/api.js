@@ -3,28 +3,26 @@ export const API_CONFIG = {
   // Dynamic IP selection based on environment
   BASE_URL: (() => {
     if (!__DEV__) {
-      return 'http://localhost:5000/api'; // Production
+      return 'https://nonfluctuating-uniaxially-laylah.ngrok-free.dev/api'; // Production Ngrok
     }
     
-    // Development - prioritize the current working IP
+    // Development - prioritize Ngrok for outdoor testing
     const possibleIPs = [
-      'http://10.15.3.62:5000/api',     // Current WiFi IP (Updated)
+      'https://nonfluctuating-uniaxially-laylah.ngrok-free.dev/api', // Ngrok Tunnel
+      'http://192.168.1.16:5000/api',     // Current WiFi IP
       'http://10.0.2.2:5000/api',        // Android Emulator
       'http://localhost:5000/api',       // iOS Simulator / Web
-      'http://127.0.0.1:5000/api',       // Alternative localhost
-      'http://192.168.1.100:5000/api',   // Common router IP range
-      'http://192.168.0.100:5000/api',   // Alternative router IP
     ];
     
-    // Use the current working IP as default
+    // Use Ngrok as the primary URL
     return possibleIPs[0];
   })(),
   
   // Alternative URLs for different environments:
-  EMULATOR_IP: 'http://10.0.2.2:5000/api',        // For Android Emulator
-  LOCALHOST: 'http://localhost:5000/api',          // For iOS Simulator
-  LOCALHOST_ALT: 'http://127.0.0.1:5000/api',     // Alternative localhost
-  WIFI_IP: 'http://10.15.3.62:5000/api',         // For physical device (WiFi) - CURRENT
+  EMULATOR_IP: 'http://10.0.2.2:5000/api',
+  LOCALHOST: 'http://localhost:5000/api',
+  WIFI_IP: 'http://192.168.1.16:5000/api',
+  NGROK: 'https://nonfluctuating-uniaxially-laylah.ngrok-free.dev/api',
   
   TIMEOUT: 10000, // 10 seconds timeout
 };
@@ -39,12 +37,8 @@ export const getApiUrl = () => {
 // Helper function to test different API URLs
 export const getAlternativeApiUrls = () => {
   return [
-    'http://10.15.3.62:5000/api',     // Current WiFi IP (Updated)
-    'http://10.0.2.2:5000/api',        // Android Emulator
-    'http://localhost:5000/api',       // iOS Simulator / Web
-    'http://127.0.0.1:5000/api',       // Alternative localhost
-    'http://192.168.1.100:5000/api',   // Common router IP range
-    'http://192.168.0.100:5000/api',   // Alternative router IP
-    'http://192.168.1.1:5000/api',     // Router gateway
+    'https://nonfluctuating-uniaxially-laylah.ngrok-free.dev/api',
+    'http://192.168.1.16:5000/api',
+    'http://10.0.2.2:5000/api',
   ];
 };

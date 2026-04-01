@@ -347,6 +347,11 @@ export const makePhoneCall = async (phoneNumber, customerName = '') => {
 
 // Calculate distance between two coordinates (Haversine formula)
 export const calculateDistance = (coord1, coord2) => {
+  // Safety check: coordinates near 0,0 are likely invalid
+  if (!coord1?.latitude || !coord2?.latitude || Math.abs(coord1.latitude) < 0.1 || Math.abs(coord2.latitude) < 0.1) {
+    return 0;
+  }
+
   const R = 6371; // Earth's radius in kilometers
   const dLat = (coord2.latitude - coord1.latitude) * Math.PI / 180;
   const dLon = (coord2.longitude - coord1.longitude) * Math.PI / 180;
@@ -355,8 +360,48 @@ export const calculateDistance = (coord1, coord2) => {
     Math.cos(coord1.latitude * Math.PI / 180) * Math.cos(coord2.latitude * Math.PI / 180) * 
     Math.sin(dLon/2) * Math.sin(dLon/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c;
-  return distance;
+  const straightDistance = R * c;
+  
+  // Apply a 1.3x factor for road routing (HCMC city distance is typically 30% longer than straight-line)
+  const roadDistance = straightDistance * 1.3;
+  
+  return roadDistance;
+};
+
+// Estimate driving time in minutes based on distance (Average 25km/h in HCMC)
+export const calculateDrivingTime = (distanceKm) => {
+  if (!distanceKm) return 0;
+  // (distance / 25) * 60 minutes = distance * 2.4
+  return Math.round(distanceKm * 2.4);
+};
+
+// Calculate driving distance using API (Simulation for now)
+export const getDrivingDistance = async (origin, destination) => {
+  try {
+    // In a real app, you would call:
+    // const response = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origin.latitude},${origin.longitude}&destinations=${destination.latitude},${destination.longitude}&key=YOUR_API_KEY`);
+    // const data = await response.json();
+    // return data.rows[0].elements[0].distance.value / 1000;
+
+    // Simulation: Calculate straight distance and add 20-30% for road routing
+    const directDist = calculateDistance(origin, destination);
+    return parseFloat(directDist.toFixed(1));
+  } catch (error) {
+    console.error('Error calculating driving distance:', error);
+    return calculateDistance(origin, destination);
+  }
+};
+
+// Calculate 2-stage distance: Shipper -> Store -> Customer
+export const calculateTwoStageDistance = async (shipperPos, storePos, customerPos) => {
+  const distToStore = await getDrivingDistance(shipperPos, storePos);
+  const distToCustomer = await getDrivingDistance(storePos, customerPos);
+  
+  return {
+    toStore: parseFloat(distToStore.toFixed(1)),
+    toCustomer: parseFloat(distToCustomer.toFixed(1)),
+    total: parseFloat((distToStore + distToCustomer).toFixed(1))
+  };
 };
 
 // Format distance for display
@@ -371,9 +416,9 @@ export const formatDistance = (distanceKm) => {
 // Estimate travel time (rough calculation)
 export const estimateTravelTime = (distanceKm, mode = 'driving') => {
   const speeds = {
-    driving: 30, // km/h average in city
-    walking: 5,  // km/h
-    cycling: 15, // km/h
+    driving: 22.5, // Reduced from 30 km/h to match real HCMC city traffic (15km/40min)
+    walking: 5,  
+    cycling: 15, 
   };
   
   const speed = speeds[mode] || speeds.driving;

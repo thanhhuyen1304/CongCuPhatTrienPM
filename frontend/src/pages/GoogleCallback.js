@@ -32,14 +32,8 @@ const GoogleCallback = () => {
           const result = await dispatch(handleGoogleCallback({ accessToken, refreshToken })).unwrap();
           toast.success('Login successful!');
           
-          // Role-based redirection
-          if (result.role === 'admin') {
-            navigate('/admin');
-          } else if (result.role === 'shipper') {
-            navigate('/shipper');
-          } else {
-            navigate('/');
-          }
+          // Always redirect to home page as requested
+          navigate('/');
         } catch (err) {
           toast.error(err || 'Authentication failed');
           navigate('/login');

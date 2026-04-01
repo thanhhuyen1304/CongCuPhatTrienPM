@@ -16,6 +16,9 @@ const useRoleRedirect = () => {
       const isOnLoginPage = location.pathname === '/login';
       const isOnRegisterPage = location.pathname === '/register';
       
+      // Disabled automatic role-based redirection as requested
+      // Now users can stay on the home page even if they are Admin or Shipper
+      /*
       if (isOnHomePage || isOnLoginPage || isOnRegisterPage) {
         if (user.role === 'admin') {
           navigate('/admin');
@@ -23,6 +26,7 @@ const useRoleRedirect = () => {
           navigate('/shipper');
         }
       }
+      */
     }
   }, [user, isAuthenticated, navigate, location.pathname]);
 
