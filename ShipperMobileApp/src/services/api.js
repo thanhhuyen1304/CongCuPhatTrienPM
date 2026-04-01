@@ -17,6 +17,7 @@ const findWorkingApiUrl = async () => {
         timeout: 5000,
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
         }
       });
       
@@ -82,6 +83,7 @@ const api = axios.create({
   timeout: 10000, // 10 seconds timeout
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 });
 

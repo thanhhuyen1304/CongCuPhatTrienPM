@@ -616,7 +616,7 @@ const MapScreen = ({ navigation, route }) => {
         {(() => {
           // A shipper is considered "In Delivery" (going to customer) 
           // only AFTER picking up the items or explicitly starting delivery
-          const isInDelivery = ['picked_up', 'in_transit', 'delivered'].includes(order.status) || 
+          const isInDelivery = ['shipped', 'in_progress', 'picked_up', 'in_transit', 'delivered'].includes(order.status) || 
                               order.deliveryStarted === true;
           
           return (
@@ -639,17 +639,6 @@ const MapScreen = ({ navigation, route }) => {
                   strokeColor={!isInDelivery ? "#94a3b8" : "#10b981"} // Gray if second leg, Green if active
                   strokeWidth={!isInDelivery ? 3 : 5}
                   lineDashPattern={!isInDelivery ? [10, 10] : null}
-                  lineJoin="round"
-                  lineCap="round"
-                />
-              )}
-
-              {/* Path 3: Current Location to Destination (only if already picked up) */}
-              {isInDelivery && currentLocation && destinationCoords && (
-                <Polyline
-                  coordinates={[currentLocation, destinationCoords]}
-                  strokeColor="#10b981" // Active Delivery Green
-                  strokeWidth={5}
                   lineJoin="round"
                   lineCap="round"
                 />
