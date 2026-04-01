@@ -45,6 +45,12 @@ process.on('unhandledRejection', (err) => {
 /* =======================
    Middleware
 ======================= */
+// Ngrok bypass middleware (ensures all responses have the skip header)
+app.use((req, res, next) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true');
+  next();
+});
+
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -70,7 +76,10 @@ app.use(
         }
       }
     },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'ngrok-skip-browser-warning'],
     credentials: true,
+    optionsSuccessStatus: 200
   })
 );
 
@@ -78,11 +87,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
-// Ngrok bypass middleware (ensures all responses have the skip header)
-app.use((req, res, next) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true');
-  next();
-});
 
 /* =======================
    MongoDB Atlas Connection
