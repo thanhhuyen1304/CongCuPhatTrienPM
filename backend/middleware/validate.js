@@ -110,7 +110,7 @@ const categoryValidation = [
     .isLength({ max: 500 })
     .withMessage('Description cannot exceed 500 characters'),
   body('parent')
-    .optional()
+    .optional({ checkFalsy: true })
     .isMongoId()
     .withMessage('Invalid parent category ID'),
   handleValidation,

@@ -26,6 +26,12 @@ PORT=5000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3000
 
+# VNPay sandbox credentials (example values already loaded in .env)
+VNPAY_TMNCODE=I7QMLZYM
+VNPAY_HASHSECRET=ZW6N5AJ92225705EWTCUKFM2FEI5TM5C
+VNPAY_PAYURL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURNURL=http://localhost:5000/api/vnpay/return
+
 # Cloudinary (get from cloudinary.com)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
@@ -71,9 +77,10 @@ npm start
 | API | http://localhost:5000/api | Backend API |
 | Home | http://localhost:3000 | Browse products |
 | Shop | http://localhost:3000/shop | Advanced search |
-| Cart | http://localhost:3000/cart | Shopping cart |
+| Cart | http://localhost:3000/cart | Shopping cart (click "💳 Thanh toán VNPay" to start VNPay checkout) |
 | Checkout | http://localhost:3000/checkout | Place order |
 | Profile | http://localhost:3000/profile | User account |
+| Payment result | http://localhost:3000/payment-result | Hiển thị kết quả VNPay sau khi thanh toán |
 | Admin | http://localhost:3000/admin | Admin dashboard |
 
 ## 👤 Test Credentials
