@@ -4,8 +4,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getOrderById } from '../store/slices/orderSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
+import socketService from '../services/socketService';
+import { formatVND } from '../utils/currency';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import AdminOrderMap from '../components/AdminOrderMap';
 
 const OrderDetailPage = () => {
   const { id } = useParams();
@@ -23,6 +26,31 @@ const OrderDetailPage = () => {
     }
   }, [error]);
 
+  // Setup real-time updates for this specific order
+  useEffect(() => {
+    if (id) {
+      // Join order room for real-time updates
+      socketService.joinOrderRoom(id);
+
+      const handleOrderStatusUpdate = (data) => {
+        if (data.orderId === id) {
+          console.log('📦 Order detail updated:', data);
+          // Refresh order details
+          dispatch(getOrderById(id));
+        }
+      };
+
+      // Register socket listener
+      socketService.on('order_status_updated', handleOrderStatusUpdate);
+
+      // Cleanup on unmount
+      return () => {
+        socketService.leaveOrderRoom(id);
+        socketService.off('order_status_updated', handleOrderStatusUpdate);
+      };
+    }
+  }, [dispatch, id]);
+
   if (loading) {
     return <Loading />;
   }
@@ -39,7 +67,6 @@ const OrderDetailPage = () => {
     const colors = {
       pending: 'bg-yellow-100 text-yellow-800',
       confirmed: 'bg-blue-100 text-blue-800',
-      processing: 'bg-purple-100 text-purple-800',
       shipped: 'bg-indigo-100 text-indigo-800',
       delivered: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800',
@@ -50,7 +77,6 @@ const OrderDetailPage = () => {
   const statusTranslations = {
     pending: 'Chờ xác nhận',
     confirmed: 'Đã xác nhận',
-    processing: 'Đang xử lý',
     shipped: 'Đang giao',
     delivered: 'Đã giao',
     cancelled: 'Đã hủy',
@@ -166,6 +192,22 @@ const OrderDetailPage = () => {
               </div>
             </div>
           </div>
+          {/* Real-time Tracking Map (Visible when shipped/delivered) */}
+          {['shipped', 'delivered'].includes(order.status) && (
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 bg-blue-50 border-b flex justify-between items-center">
+                <h3 className="font-semibold text-blue-900">Theo dõi giao hàng thực tế</h3>
+                {order.realTimeDistances?.toCustomer !== undefined && (
+                  <span className="text-sm font-medium text-blue-700">
+                    Cách chỗ bạn: {order.realTimeDistances.toCustomer} km
+                  </span>
+                )}
+              </div>
+              <div className="p-4">
+                <AdminOrderMap order={order} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Order Summary Sidebar */}
@@ -191,11 +233,17 @@ const OrderDetailPage = () => {
                   {order.shippingPrice?.toLocaleString('vi-VN')} ₫
                 </span>
               </div>
+              {order.promotion?.discount > 0 && (
+                <div className="flex justify-between text-sm text-red-600 font-medium">
+                  <span>Khuyến mãi ({order.promotion.code}):</span>
+                  <span>-{order.promotion.discount?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+              )}
             </div>
             <div className="flex justify-between mb-4">
               <span className="font-semibold text-gray-900">Tổng tiền:</span>
               <span className="text-2xl font-bold text-blue-600">
-                {order.totalPrice?.toLocaleString('vi-VN')} ₫
+                {formatVND(order.totalPrice)}
               </span>
             </div>
             {['pending', 'confirmed'].includes(order.status) && (

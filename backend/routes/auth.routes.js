@@ -10,6 +10,7 @@ const {
   getMe,
   updateProfile,
   changePassword,
+  applyShipper,
   googleCallback,
 } = require('../controllers/auth.controller');
 
@@ -45,5 +46,6 @@ router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
 router.put('/profile', protect, upload.single('avatar'), updateProfile);
 router.put('/change-password', protect, changePassword);
+router.post('/apply-shipper', protect, applyShipper);
 
 module.exports = router;

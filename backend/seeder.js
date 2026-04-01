@@ -13,17 +13,24 @@ const Product = require('./models/Product');
 // Sample data
 const users = [
   {
-    name: 'Admin User',
+    name: 'Administrator',
     email: 'admin@gmail.com',
     password: 'admin123',
     role: 'admin',
     isEmailVerified: true,
   },
   {
-    name: 'Bùi Thị Thanh Huyền',
-    email: 'buithithanhhuyen0404@gmail.com',
-    password: '123456Aa@',
+    name: 'User',
+    email: 'user@gmail.com',
+    password: 'user123',
     role: 'user',
+    isEmailVerified: true,
+  },
+  {
+    name: 'Shipper',
+    email: 'shipper@gmail.com',
+    password: 'shipper123',
+    role: 'shipper',
     isEmailVerified: true,
   },
 ];
@@ -40,8 +47,8 @@ const products = [
   {
     name: 'Stylish Watch',
     description: 'A sleek and modern timepiece for every occasion. Perfect for both casual and formal wear.',
-    price: 129.99,
-    comparePrice: 159.99,
+    price: 3200000, // 3.2 million VND (converted from $129.99)
+    comparePrice: 3900000, // 3.9 million VND (converted from $159.99)
     stock: 50,
     brand: 'TimeMaster',
     isFeatured: true,
@@ -56,8 +63,8 @@ const products = [
   {
     name: 'Wireless Headphones',
     description: 'Immersive sound quality with ultimate comfort. Active noise cancellation and 30-hour battery life.',
-    price: 79.99,
-    comparePrice: 99.99,
+    price: 1950000, // 1.95 million VND (converted from $79.99)
+    comparePrice: 2450000, // 2.45 million VND (converted from $99.99)
     stock: 100,
     brand: 'SoundMax',
     isFeatured: true,
@@ -72,8 +79,8 @@ const products = [
   {
     name: 'Smart Fitness Tracker',
     description: 'Track your health and fitness goals effortlessly. Heart rate monitor, sleep tracking, and more.',
-    price: 49.99,
-    comparePrice: 69.99,
+    price: 1220000, // 1.22 million VND (converted from $49.99)
+    comparePrice: 1710000, // 1.71 million VND (converted from $69.99)
     stock: 75,
     brand: 'FitTech',
     isFeatured: true,
@@ -88,8 +95,8 @@ const products = [
   {
     name: 'Portable Bluetooth Speaker',
     description: 'Powerful sound in a compact, travel-friendly design. Waterproof and dustproof.',
-    price: 59.99,
-    comparePrice: 79.99,
+    price: 1460000, // 1.46 million VND (converted from $59.99)
+    comparePrice: 1950000, // 1.95 million VND (converted from $79.99)
     stock: 60,
     brand: 'SoundMax',
     isFeatured: true,
@@ -104,8 +111,8 @@ const products = [
   {
     name: 'Ergonomic Office Chair',
     description: 'Comfort and support for long working hours. Adjustable height and lumbar support.',
-    price: 199.99,
-    comparePrice: 249.99,
+    price: 4900000, // 4.9 million VND (converted from $199.99)
+    comparePrice: 6100000, // 6.1 million VND (converted from $249.99)
     stock: 30,
     brand: 'ComfortPlus',
     isFeatured: true,
@@ -120,8 +127,8 @@ const products = [
   {
     name: 'High-Performance Laptop',
     description: 'Power and speed for all your computing needs. 16GB RAM, 512GB SSD, Intel Core i7.',
-    price: 899.99,
-    comparePrice: 1099.99,
+    price: 22000000, // 22 million VND (converted from $899.99)
+    comparePrice: 26900000, // 26.9 million VND (converted from $1099.99)
     stock: 25,
     brand: 'TechPro',
     isFeatured: true,
@@ -136,8 +143,8 @@ const products = [
   {
     name: 'Digital Camera',
     description: 'Capture stunning photos and videos with ease. 24MP sensor and 4K video recording.',
-    price: 349.99,
-    comparePrice: 449.99,
+    price: 8550000, // 8.55 million VND (converted from $349.99)
+    comparePrice: 11000000, // 11 million VND (converted from $449.99)
     stock: 40,
     brand: 'PhotoMax',
     isFeatured: true,
@@ -152,8 +159,8 @@ const products = [
   {
     name: 'Gaming Console',
     description: 'Unleash your gaming potential with next-gen graphics. Includes wireless controller.',
-    price: 499.99,
-    comparePrice: 549.99,
+    price: 12200000, // 12.2 million VND (converted from $499.99)
+    comparePrice: 13400000, // 13.4 million VND (converted from $549.99)
     stock: 35,
     brand: 'GameZone',
     isFeatured: true,
@@ -169,8 +176,8 @@ const products = [
   {
     name: 'Classic T-Shirt',
     description: 'Comfortable and stylish t-shirt perfect for everyday wear. 100% cotton.',
-    price: 29.99,
-    comparePrice: 39.99,
+    price: 730000, // 730k VND (converted from $29.99)
+    comparePrice: 980000, // 980k VND (converted from $39.99)
     stock: 200,
     brand: 'StyleWear',
     isFeatured: true,
@@ -185,8 +192,8 @@ const products = [
   {
     name: 'Denim Jeans',
     description: 'Premium quality denim jeans with perfect fit. Available in multiple colors.',
-    price: 79.99,
-    comparePrice: 99.99,
+    price: 1950000, // 1.95 million VND (converted from $79.99)
+    comparePrice: 2450000, // 2.45 million VND (converted from $99.99)
     stock: 150,
     brand: 'DenimCo',
     isFeatured: true,
@@ -201,8 +208,8 @@ const products = [
   {
     name: 'Winter Jacket',
     description: 'Warm and waterproof winter jacket. Perfect for cold weather.',
-    price: 149.99,
-    comparePrice: 199.99,
+    price: 3674755,
+    comparePrice: 4899755,
     stock: 80,
     brand: 'WinterWear',
     isFeatured: true,
@@ -218,8 +225,8 @@ const products = [
   {
     name: 'Modern Table Lamp',
     description: 'Contemporary table lamp with adjustable brightness. Energy efficient LED.',
-    price: 49.99,
-    comparePrice: 69.99,
+    price: 1224755,
+    comparePrice: 1714755,
     stock: 120,
     brand: 'HomeDecor',
     isFeatured: true,
@@ -366,7 +373,7 @@ const products = [
 // Connect to MongoDB and seed data
 const seedDatabase = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
     console.log('Connected to MongoDB');
 
     // Clear existing data
@@ -378,8 +385,9 @@ const seedDatabase = async () => {
     // Create users
     const createdUsers = await User.create(users);
     console.log(`Created ${createdUsers.length} users`);
-    console.log('Admin credentials: admin@example.com / admin123');
-    console.log('User credentials: john@example.com / user123');
+    console.log('Admin credentials: admin@gmail.com / admin123');
+    console.log('User credentials: user@gmail.com / user123');
+    console.log('Shipper credentials: shipper@gmail.com / shipper123');
 
     // Create categories
     const createdCategories = await Category.create(categories);

@@ -4,10 +4,6 @@ const { body, param, query, validationResult } = require('express-validator');
 const handleValidation = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('=== VALIDATION ERRORS ===');
-    console.log('Request body:', req.body);
-    console.log('Validation errors:', errors.array());
-    console.log('==========================');
     return res.status(400).json({
       success: false,
       message: 'Validation Error',
@@ -110,7 +106,7 @@ const categoryValidation = [
     .isLength({ max: 500 })
     .withMessage('Description cannot exceed 500 characters'),
   body('parent')
-    .optional({ checkFalsy: true })
+    .optional()
     .isMongoId()
     .withMessage('Invalid parent category ID'),
   handleValidation,
@@ -170,7 +166,7 @@ const updateOrderStatusValidation = [
   body('status')
     .notEmpty()
     .withMessage('Status is required')
-    .isIn(['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'])
+    .isIn(['pending', 'confirmed', 'completed', 'shipped', 'delivered', 'cancelled'])
     .withMessage('Invalid order status'),
   body('note')
     .optional()
@@ -194,8 +190,8 @@ const paginationValidation = [
     .withMessage('Page must be a positive integer'),
   query('limit')
     .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit must be between 1 and 100'),
+    .isInt({ min: 1, max: 1000 })
+    .withMessage('Limit must be between 1 and 1000'),
   handleValidation,
 ];
 

@@ -31,8 +31,21 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'admin', 'shipper'],
       default: 'user',
+    },
+    shipperInfo: {
+      vehicleType: { type: String },
+      licensePlate: { type: String },
+      drivingLicense: { type: String },
+      phone: { type: String },
+      experience: { type: Number, default: 0 },
+      workingHours: { type: String, enum: ['full-time', 'part-time', 'flexible'], default: 'full-time' },
+      isVerified: { type: Boolean, default: false },
+      rating: { type: Number, default: 5, min: 0, max: 5 },
+      totalDeliveries: { type: Number, default: 0 },
+      applicationDate: { type: Date },
+      status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     },
     avatar: {
       type: String,

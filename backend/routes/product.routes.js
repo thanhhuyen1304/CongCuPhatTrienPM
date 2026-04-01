@@ -29,12 +29,8 @@ const {
 router.get('/', paginationValidation, getProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/slug/:slug', getProductBySlug);
-router.get('/:id', mongoIdValidation('id'), getProductById);
 
-// Protected routes (user)
-router.post('/:id/reviews', protect, mongoIdValidation('id'), addProductReview);
-
-// Admin routes
+// Admin routes (must come before /:id route)
 router.get('/admin/all', protect, admin, paginationValidation, getAllProductsAdmin);
 router.get('/admin/stats', protect, admin, getProductStats);
 router.post('/', protect, admin, productValidation, createProduct);
@@ -62,5 +58,11 @@ router.put(
   admin,
   setMainImage
 );
+
+// Public routes with ID parameter (must come after admin routes)
+router.get('/:id', mongoIdValidation('id'), getProductById);
+
+// Protected routes (user)
+router.post('/:id/reviews', protect, mongoIdValidation('id'), addProductReview);
 
 module.exports = router;

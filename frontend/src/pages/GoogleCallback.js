@@ -29,8 +29,10 @@ const GoogleCallback = () => {
     if (accessToken && refreshToken) {
       const handleCallback = async () => {
         try {
-          await dispatch(handleGoogleCallback({ accessToken, refreshToken })).unwrap();
+          const result = await dispatch(handleGoogleCallback({ accessToken, refreshToken })).unwrap();
           toast.success('Login successful!');
+          
+          // Always redirect to home page as requested
           navigate('/');
         } catch (err) {
           toast.error(err || 'Authentication failed');

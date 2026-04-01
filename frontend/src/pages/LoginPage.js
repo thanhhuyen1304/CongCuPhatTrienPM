@@ -13,6 +13,7 @@ const LoginPage = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   const location = useLocation();
   const { loading, error } = useSelector((state) => state.auth);
 
@@ -29,7 +30,9 @@ const LoginPage = () => {
       toast.error(error);
     }
   }, [error]);
-
+  const handleGoogleLogin = () => {
+    window.location.href = 'http://localhost:5000/api/auth/google';
+  };
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -38,19 +41,14 @@ const LoginPage = () => {
     e.preventDefault();
 
     try {
-      console.log('LoginPage: Starting login...');
-      await dispatch(login(formData)).unwrap();
-      console.log('LoginPage: Login successful, showing toast and navigating...');
+      const result = await dispatch(login(formData)).unwrap();
       toast.success('Login successful!');
+      
+      // Always redirect to home page or previous page as requested
       navigate(from, { replace: true });
     } catch (error) {
-      console.log('LoginPage: Login failed', error);
       // Error handled by useEffect
     }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/google`;
   };
 
   return (
@@ -64,7 +62,7 @@ const LoginPage = () => {
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-8">
-        {/* Google Login */}
+          {/* Google Login */}
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -100,6 +98,7 @@ const LoginPage = () => {
               </span>
             </div>
           </div>
+
           {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

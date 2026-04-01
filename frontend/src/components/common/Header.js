@@ -151,7 +151,7 @@ const Header = () => {
               className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
             >
               <ShoppingCartIcon className="h-6 w-6" />
-              {isAuthenticated && cartItemsCount > 0 && (
+              {cartItemsCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
                   {cartItemsCount}
                 </span>
@@ -195,6 +195,15 @@ const Header = () => {
                         onClick={() => setUserDropdown(false)}
                       >
                         {t('nav.admin')}
+                      </Link>
+                    )}
+                    {user?.role === 'shipper' && (
+                      <Link
+                        to="/shipper"
+                        className="block px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        onClick={() => setUserDropdown(false)}
+                      >
+                        Shipper Dashboard
                       </Link>
                     )}
                     <hr className="my-2" />

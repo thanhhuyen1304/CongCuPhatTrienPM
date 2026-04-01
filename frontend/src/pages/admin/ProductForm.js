@@ -57,14 +57,14 @@ const AdminProductForm = () => {
       toast.error(t('adminProductForm.errorLoading'));
       navigate('/admin/products');
     }
-  }, [id, t, navigate]);
+  }, [id, navigate, t]);
 
   useEffect(() => {
     fetchCategories();
     if (isEdit) {
       fetchProduct();
     }
-  }, [isEdit, fetchCategories, fetchProduct]);
+  }, [isEdit, id, fetchCategories, fetchProduct]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -90,13 +90,6 @@ const AdminProductForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setLoading(false);
-      toast.error('Bạn chưa đăng nhập hoặc phiên đã hết hạn. Vui lòng đăng nhập lại.');
-      navigate('/login');
-      return;
-    }
 
     try {
       const productData = {
@@ -128,7 +121,6 @@ const AdminProductForm = () => {
       
       navigate('/admin/products');
     } catch (error) {
-      console.error('Create/Update product error:', error.response || error);
       toast.error(error.response?.data?.message || t('adminProductForm.errorSaving'));
     } finally {
       setLoading(false);

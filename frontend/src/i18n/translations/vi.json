@@ -89,10 +89,10 @@
     "status": "Trạng thái",
     "view": "Xem chi tiết",
     "noOrders": "Bạn chưa có đơn hàng nào",
-    "pending": "Đang chờ",
+    "pending": "Chờ xác nhận",
     "confirmed": "Đã xác nhận",
-    "processing": "Đang xử lý",
-    "shipped": "Đã gửi",
+    "processing": "Chờ lấy hàng",
+    "shipped": "Đang giao",
     "delivered": "Đã giao",
     "cancelled": "Đã hủy"
   },
@@ -319,6 +319,8 @@
     "confirmApprove": "Bạn chắc chắn muốn duyệt đơn hàng này?",
     "confirmReject": "Bạn chắc chắn muốn từ chối đơn hàng này?",
     "approveNote": "Ghi chú phê duyệt",
-    "rejectReason": "Lý do từ chối"
+    "rejectReason": "Lý do từ chối",
+    "updateStatus": "Cập nhật trạng thái",
+    "selectStatus": "Chọn trạng thái"
   }
 }

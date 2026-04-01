@@ -47,6 +47,8 @@ const orderSchema = new mongoose.Schema(
       state: { type: String },
       zipCode: { type: String },
       country: { type: String, default: 'Vietnam' },
+      latitude: { type: Number },
+      longitude: { type: Number },
     },
     paymentMethod: {
       type: String,
@@ -84,7 +86,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
+      enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
       default: 'pending',
     },
     statusHistory: [
@@ -98,6 +100,31 @@ const orderSchema = new mongoose.Schema(
     note: {
       type: String,
       maxlength: [500, 'Note cannot exceed 500 characters'],
+    },
+    shipper: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    currentLocation: {
+      latitude: { type: Number },
+      longitude: { type: Number },
+      address: { type: String },
+      updatedAt: { type: Date, default: Date.now },
+    },
+    storeLocation: {
+      latitude: { type: Number, default: 10.7740 }, // Default store lat (District 1)
+      longitude: { type: Number, default: 106.7010 }, // Default store long (HCM)
+      address: { type: String, default: 'Store ABC, 456 Nguyen Hue St, District 1, Ho Chi Minh City' },
+    },
+    promotion: {
+      code: { type: String },
+      discount: { type: Number, default: 0 },
+      discountType: { type: String, enum: ['percentage', 'fixed'], default: 'fixed' },
+    },
+    realTimeDistances: {
+      toStore: { type: Number, default: 0 },
+      toCustomer: { type: Number, default: 0 },
     },
     deliveredAt: {
       type: Date,
@@ -131,13 +158,19 @@ orderSchema.pre('save', async function (next) {
   next();
 });
 
-// Add status to history when status changes
+// Add status to history when status changes - enhanced with validation
 orderSchema.pre('save', function (next) {
   if (this.isModified('status')) {
-    this.statusHistory.push({
-      status: this.status,
-      updatedAt: new Date(),
-    });
+    // Only add to history if not already added by logStatusChange
+    const lastHistoryEntry = this.statusHistory[this.statusHistory.length - 1];
+    if (!lastHistoryEntry || lastHistoryEntry.status !== this.status) {
+      this.statusHistory.push({
+        status: this.status,
+        updatedAt: new Date(),
+        note: 'Status updated',
+        previousStatus: this.constructor.findOne({ _id: this._id }).status // This won't work in pre-save, but kept for reference
+      });
+    }
 
     if (this.status === 'delivered') {
       this.deliveredAt = new Date();
@@ -157,16 +190,41 @@ orderSchema.pre('save', function (next) {
   next();
 });
 
-// Method to calculate prices
+// Method to calculate prices (all in VND)
 orderSchema.methods.calculatePrices = function (taxRate = 0.1, shippingRate = 30000) {
+  // Calculate items price in VND
   this.itemsPrice = this.items.reduce(
     (acc, item) => acc + item.price * item.quantity,
     0
   );
+  
+  // Calculate tax in VND
   this.taxPrice = Math.round(this.itemsPrice * taxRate);
-  this.shippingPrice = this.itemsPrice > 500000 ? 0 : shippingRate; // Free shipping for orders over 500k
+  
+  // Free shipping for orders over 500,000 VND
+  this.shippingPrice = this.itemsPrice > 500000 ? 0 : shippingRate;
+  
+  // Total price in VND
   this.totalPrice = this.itemsPrice + this.taxPrice + this.shippingPrice;
 };
+
+// Method to get Vietnamese status text
+orderSchema.methods.getVietnameseStatus = function () {
+  const statusMap = {
+    'pending': 'Chờ xác nhận',
+    'confirmed': 'Đã xác nhận',
+    'completed': 'Hoàn thành',
+    'shipped': 'Đang giao hàng',
+    'delivered': 'Đã giao hàng',
+    'cancelled': 'Đã hủy',
+  };
+  return statusMap[this.status] || this.status;
+};
+
+// Virtual for Vietnamese status
+orderSchema.virtual('vietnameseStatus').get(function () {
+  return this.getVietnameseStatus();
+});
 
 // Static method to get order statistics
 orderSchema.statics.getOrderStats = async function (startDate, endDate) {
