@@ -152,6 +152,21 @@ const AdminOrders = () => {
     }
   };
 
+  const handleOpenTracking = async (orderId) => {
+    try {
+      const loadingToast = toast.loading('Đang lấy dữ liệu định vị...');
+      const response = await api.get(`/orders/${orderId}`);
+      toast.dismiss(loadingToast);
+      
+      if (response.data.success) {
+        setTrackingOrder(response.data.data.order);
+      }
+    } catch (error) {
+      toast.error('Không thể lấy dữ liệu theo dõi');
+      console.error(error);
+    }
+  };
+
   const getStatusConfig = (status) => {
     const configs = {
       pending: { 
@@ -666,7 +681,7 @@ const AdminOrders = () => {
                                 </button>
                                  {['confirmed', 'shipped', 'delivered'].includes(order.status) && (
                                    <button
-                                     onClick={() => setTrackingOrder(order)}
+                                     onClick={() => handleOpenTracking(order._id)}
                                      className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-medium hover:bg-blue-100 transition-all duration-200 shadow-sm"
                                    >
                                      <MapIcon className="w-3.5 h-3.5 mr-1.5" />

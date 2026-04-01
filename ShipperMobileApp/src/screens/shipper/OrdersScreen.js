@@ -9,6 +9,8 @@ import {
   Alert,
   Image,
   RefreshControl,
+  PermissionsAndroid,
+  Platform,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useFocusEffect } from '@react-navigation/native';
@@ -237,30 +239,124 @@ const OrdersScreen = ({ navigation }) => {
   const [shipperLocation, setShipperLocation] = useState(null);
   const [realTimeMetrics, setRealTimeMetrics] = useState({});
   
+  const activeOrder = allOrders.find(o => ['processing', 'shipped'].includes(o.status));
+  const activeOrderRef = React.useRef(activeOrder);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    activeOrderRef.current = activeOrder;
+    console.log('🔄 activeOrderRef updated:', activeOrder?.orderNumber, 'Status:', activeOrder?.status);
+  }, [activeOrder]);
+  
   // Track shipper location in real-time
   useEffect(() => {
-    if (isShipper) {
+    const requestLocationPermission = async () => {
+      if (Platform.OS === 'android') {
+        try {
+          console.log('📡 Requesting location permission...');
+          const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Quyền truy cập vị trí',
+              message: 'Ứng dụng cần quyền truy cập vị trí để cập nhật lộ trình giao hàng cho khách hàng.',
+              buttonNeutral: 'Hỏi lại sau',
+              buttonNegative: 'Từ chối',
+              buttonPositive: 'Đồng ý',
+            }
+          );
+          if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('✅ Location permission granted');
+            return startTracking();
+          } else {
+            console.log('❌ Location permission denied');
+            return null;
+          }
+        } catch (err) {
+          console.warn(err);
+          return null;
+        }
+      } else {
+        return startTracking();
+      }
+    };
+
+    const startTracking = () => {
       console.log('📡 Starting real-time location tracking...');
       
+      // Get initial position immediately
+      Geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 Initial location:', latitude, longitude);
+          setShipperLocation({ latitude, longitude });
+          
+          // Gửi tín hiệu lên server để khách hàng/admin theo dõi
+          const currentOrder = activeOrderRef.current;
+          const activeOrderId = currentOrder?._id || null;
+          socketService.emitLocationUpdate(latitude, longitude, activeOrderId);
+        },
+        (error) => {
+          console.warn('⚠️ Initial geolocation warning:', error.message);
+          // Try again with lower accuracy if high accuracy fails
+          if (error.code === 3) { // Timeout
+            Geolocation.getCurrentPosition(
+              (pos) => {
+                const currentOrder = activeOrderRef.current;
+                socketService.emitLocationUpdate(latitude, longitude, currentOrder?._id || null);
+              },
+              (err) => console.warn('⚠️ Low accuracy fallback failed:', err.message),
+              { enableHighAccuracy: false, timeout: 10000, maximumAge: 10000 }
+            );
+          }
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
+      );
+
       const watchId = Geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           console.log('📍 Location updated:', latitude, longitude);
           setShipperLocation({ latitude, longitude });
           
-          // Send location to server via socket for admin tracking
-          socketService.emit('update_location', { latitude, longitude });
+          // Gửi tín hiệu lên server để khách hàng/admin theo dõi
+          const currentOrder = activeOrderRef.current;
+          const activeOrderId = currentOrder?._id || null;
+          socketService.emitLocationUpdate(latitude, longitude, activeOrderId);
         },
-        (error) => console.error('❌ Geolocation error:', error),
-        { enableHighAccuracy: true, distanceFilter: 10, interval: 10000, fastestInterval: 5000 }
+        (error) => console.warn('⚠️ Geolocation watch warning:', error.message),
+        { 
+          enableHighAccuracy: true, 
+          distanceFilter: 5,
+          interval: 5000,
+          fastestInterval: 2000 
+        }
       );
       
-      return () => {
+      return watchId;
+    };
+
+    let watchId;
+    if (isShipper) {
+      requestLocationPermission().then(id => {
+        // Need to store the ID returned from startTracking
+        // But requestLocationPermission needs to return it
+      });
+      
+      // Simplify: call a function that sets a local variable
+      const init = async () => {
+        const id = await requestLocationPermission();
+        watchId = id;
+      };
+      init();
+    }
+
+    return () => {
+      if (watchId !== undefined) {
         console.log('📡 Stopping location tracking...');
         Geolocation.clearWatch(watchId);
-      };
-    }
-  }, [isShipper]);
+      }
+    };
+  }, [isShipper, activeOrder?._id]);
 
   // Update distances when location or orders change
   useEffect(() => {
