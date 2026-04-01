@@ -111,6 +111,7 @@ const MapScreen = ({ navigation, route }) => {
   const [pickupCoords, setPickupCoords] = useState(null);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
   const [routeInfo, setRouteInfo] = useState({ distance: null, duration: null });
+  const [storeToCustomerInfo, setStoreToCustomerInfo] = useState({ distance: null, duration: null });
   const [watchId, setWatchId] = useState(null);
   const [isTracking, setIsTracking] = useState(false);
 
@@ -263,6 +264,13 @@ const MapScreen = ({ navigation, route }) => {
       
       setDestinationCoords(destCoords);
       setPickupCoords(pickupCoords);
+      
+      // Calculate Store-to-Customer total metrics
+      if (destCoords && pickupCoords) {
+        const totalInfo = calculateRouteInfo([pickupCoords, destCoords]);
+        setStoreToCustomerInfo(totalInfo);
+        console.log('🏁 Store to Customer total metrics:', totalInfo);
+      }
       
       // Get current location and create route
       getCurrentLocation(destCoords, pickupCoords);
@@ -608,7 +616,7 @@ const MapScreen = ({ navigation, route }) => {
         {(() => {
           // A shipper is considered "In Delivery" (going to customer) 
           // only AFTER picking up the items or explicitly starting delivery
-          const isInDelivery = ['picked_up', 'in_transit', 'delivered'].includes(order.status) || 
+          const isInDelivery = ['shipped', 'in_progress', 'picked_up', 'in_transit', 'delivered'].includes(order.status) || 
                               order.deliveryStarted === true;
           
           return (
@@ -631,17 +639,6 @@ const MapScreen = ({ navigation, route }) => {
                   strokeColor={!isInDelivery ? "#94a3b8" : "#10b981"} // Gray if second leg, Green if active
                   strokeWidth={!isInDelivery ? 3 : 5}
                   lineDashPattern={!isInDelivery ? [10, 10] : null}
-                  lineJoin="round"
-                  lineCap="round"
-                />
-              )}
-
-              {/* Path 3: Current Location to Destination (only if already picked up) */}
-              {isInDelivery && currentLocation && destinationCoords && (
-                <Polyline
-                  coordinates={[currentLocation, destinationCoords]}
-                  strokeColor="#10b981" // Active Delivery Green
-                  strokeWidth={5}
                   lineJoin="round"
                   lineCap="round"
                 />
@@ -698,13 +695,25 @@ const MapScreen = ({ navigation, route }) => {
             <View style={styles.metricItem}>
               <Icon name="road-variant" size={18} color="#1e293b" />
               <Text style={styles.metricText}>
-                {routeInfo.distance ? `${routeInfo.distance} km` : orderData.distance}
+                {(() => {
+                  const isInDelivery = ['picked_up', 'in_transit', 'delivered'].includes(order.status);
+                  if (isInDelivery && storeToCustomerInfo.distance) {
+                    return `${storeToCustomerInfo.distance} km (tổng)`;
+                  }
+                  return routeInfo.distance ? `${routeInfo.distance} km` : orderData.distance;
+                })()}
               </Text>
             </View>
             <View style={styles.metricItem}>
               <Icon name="clock-outline" size={18} color="#1e293b" />
               <Text style={styles.metricText}>
-                {(routeInfo.duration && routeInfo.duration > 1) ? `${routeInfo.duration} phút` : orderData.estimatedTime} 
+                {(() => {
+                  const isInDelivery = ['picked_up', 'in_transit', 'delivered'].includes(order.status);
+                  if (isInDelivery && storeToCustomerInfo.duration) {
+                    return `${storeToCustomerInfo.duration} phút`;
+                  }
+                  return (routeInfo.duration && routeInfo.duration > 1) ? `${routeInfo.duration} phút` : orderData.estimatedTime;
+                })()}
                 {!['shipped', 'in_progress', 'in_transit', 'picked_up'].includes(orderData.status) ? ' đến kho' : ''}
               </Text>
             </View>

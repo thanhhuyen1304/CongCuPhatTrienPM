@@ -17,6 +17,8 @@ const initializeSocket = (server) => {
       methods: ['GET', 'POST'],
       credentials: true,
     },
+    pingTimeout: 60000,   // Wait 60s for client response
+    pingInterval: 25000,  // Send heartbeats every 25s
   });
 
   // Authentication middleware for socket connections

@@ -143,10 +143,9 @@ const getMyOrders = asyncHandler(async (req, res) => {
 // @route   GET /api/orders/:id
 // @access  Private
 const getOrderById = asyncHandler(async (req, res) => {
-  const order = await Order.findById(req.params.id).populate(
-    'user',
-    'name email'
-  );
+  const order = await Order.findById(req.params.id)
+    .populate('user', 'name email phone')
+    .populate('shipper', 'name email phone');
 
   if (!order) {
     res.status(404);
@@ -253,7 +252,8 @@ const getAllOrders = asyncHandler(async (req, res) => {
 
   const total = await Order.countDocuments(query);
   const orders = await Order.find(query)
-    .populate('user', 'name email')
+    .populate('user', 'name email phone')
+    .populate('shipper', 'name email phone')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -542,7 +542,7 @@ const updateOrderByShipper = asyncHandler(async (req, res) => {
   }
 
   // If shipper is taking over the order, assign them
-  if (!order.shipper && status === 'processing') {
+  if (!order.shipper && (status === 'processing' || status === 'shipped')) {
     order.shipper = req.user._id;
   }
 
@@ -573,8 +573,13 @@ const updateOrderByShipper = asyncHandler(async (req, res) => {
 
   await order.save();
 
+  // Populate shipper to ensure frontend gets the full object
+  await order.populate('shipper', 'name email phone');
+
   // Emit real-time status update
   emitOrderStatusUpdate(order, previousStatus, req.user._id, note || `Cập nhật bởi shipper: ${getStatusDisplayName(status)}`);
+
+  console.log(`✅ Order ${order.orderNumber} updated to ${status}. Shipper: ${order.shipper?.name || 'Assigned'}`);
 
   res.json({
     success: true,
@@ -616,6 +621,12 @@ const acceptOrderForDelivery = asyncHandler(async (req, res) => {
   });
 
   await order.save();
+
+  // Populate shipper to have full name for frontend
+  await order.populate('shipper', 'name email phone');
+
+  // Emit real-time status update to admins and user
+  emitOrderStatusUpdate(order, 'confirmed', req.user._id, 'Đơn hàng đã được shipper nhận');
 
   res.json({
     success: true,
@@ -703,7 +714,14 @@ const updateDeliveryStatus = asyncHandler(async (req, res) => {
     order.currentLocation = location;
   }
 
+  const previousStatus = order.status;
   await order.save();
+  
+  // Populate shipper to have full name for frontend
+  await order.populate('shipper', 'name email phone');
+
+  // Emit real-time status update to admins and user
+  emitOrderStatusUpdate(order, previousStatus, req.user._id, note || `Cập nhật bởi shipper: ${status}`);
 
   res.json({
     success: true,

@@ -67,6 +67,15 @@ class SocketService {
       this.isConnected = false;
       this.reconnectAttempts++;
       
+      // If unauthorized, try to update token from localStorage
+      if (error.message.includes('Authentication') || error.message.includes('Invalid token')) {
+        const freshToken = localStorage.getItem('accessToken');
+        if (freshToken) {
+          console.log('🔄 Attempting to re-authenticate socket with fresh token...');
+          this.socket.auth.token = freshToken;
+        }
+      }
+      
       if (this.reconnectAttempts <= this.maxReconnectAttempts) {
         console.log(`🔄 Reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
         setTimeout(() => {
@@ -75,7 +84,7 @@ class SocketService {
           }
         }, 2000 * this.reconnectAttempts);
       } else {
-        toast.error('Không thể kết nối real-time updates');
+        toast.error('Không thể kết nối real-time updates. Vui lòng tải lại trang.');
       }
     });
 

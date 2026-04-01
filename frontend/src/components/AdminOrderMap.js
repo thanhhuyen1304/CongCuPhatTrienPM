@@ -61,7 +61,12 @@ const AdminOrderMap = ({ order }) => {
   useEffect(() => {
     // Listen for shipper location updates via socket
     const handleShipperUpdate = (data) => {
-      if (order.shipper && (data.shipperId === order.shipper._id || data.shipperId === order.shipper)) {
+      console.log('📡 Nhận tín hiệu vị trí mới:', data);
+      const currentOrderId = order._id;
+      const orderShipperId = order.shipper?._id || order.shipper;
+      
+      if (orderShipperId && data.shipperId === orderShipperId.toString()) {
+        console.log('✅ Khớp Shipper! Cập nhật tọa độ:', [data.latitude, data.longitude]);
         setShipperPos([data.latitude, data.longitude]);
       }
     };
@@ -81,8 +86,36 @@ const AdminOrderMap = ({ order }) => {
   const allPositions = [storePos, customerPos];
   if (shipperPos) allPositions.push(shipperPos);
 
+  const getStatusOverlay = () => {
+    if (order.status === 'delivered') return null;
+    
+    // Check if shipper is present (could be object or ID string)
+    const hasShipper = order.shipper && (typeof order.shipper === 'object' ? order.shipper._id : order.shipper);
+    
+    if (!hasShipper) {
+      return (
+        <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-lg border border-yellow-200 flex items-center gap-2">
+          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+          <span className="text-sm font-medium text-yellow-800">Hệ thống đang tìm Shipper...</span>
+        </div>
+      );
+    }
+    if (!shipperPos) {
+      const shipperName = (typeof order.shipper === 'object' ? order.shipper?.name : 'Shipper') || 'Shipper';
+      return (
+        <div className="absolute top-4 right-4 z-[1000] bg-white/90 backdrop-blur px-4 py-2 rounded-lg shadow-lg border border-blue-200 flex items-center gap-2">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" />
+          <span className="text-sm font-medium text-blue-800">{shipperName} đang chuẩn bị lấy hàng</span>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div className="h-[400px] w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+    <div className="h-[400px] w-full rounded-xl overflow-hidden border border-gray-200 shadow-inner relative">
+      {getStatusOverlay()}
+      
       <MapContainer 
         center={shipperPos || storePos} 
         zoom={13} 

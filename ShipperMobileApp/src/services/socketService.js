@@ -28,13 +28,30 @@ class SocketService {
       const serverUrl = getApiUrl().replace('/api', '');
       console.log('🔌 Connecting to Socket.IO server:', serverUrl);
 
+      console.log('🔌 Connecting to socket with token:', token.substring(0, 10));
+      
       this.socket = io(serverUrl, {
         auth: {
           token: token,
         },
-        transports: ['websocket', 'polling'],
-        timeout: 10000,
-        forceNew: true,
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
+      });
+
+      this.socket.on('connect', () => {
+        console.log('✅ Socket connected successfully');
+      });
+
+      this.socket.on('connect_error', async (error) => {
+        console.log('❌ Socket connection error:', error.message);
+        if (error.message.includes('Authentication')) {
+          console.log('🔄 Auth error detected, clearing token and attempting to refresh...');
+          // Optional: handle token refresh logic here if needed
+        }
       });
 
       this.setupEventListeners();
@@ -124,6 +141,25 @@ class SocketService {
       this.socket.emit('leave_order', orderId);
       console.log(`📦 Left order room: ${orderId}`);
     }
+  }
+
+  // Emit data to the server
+  emitToServer(event, data) {
+    if (this.socket?.connected) {
+      this.socket.emit(event, data);
+      return true;
+    }
+    console.warn(`⚠️ Cannot emit ${event}: Socket not connected`);
+    return false;
+  }
+
+  // Special method for location updates (convenience)
+  emitLocationUpdate(latitude, longitude, orderId = null) {
+    return this.emitToServer('update_location', {
+      latitude,
+      longitude,
+      orderId,
+    });
   }
 
   // Register event listener

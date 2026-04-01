@@ -270,13 +270,13 @@ const ShipperView = ({ order, navigation, handleAction, metrics }) => {
             <Text style={styles.primaryActionText}>Nhận đơn hàng</Text>
           </TouchableOpacity>
         )}
-        {order.status === 'shipped' && (
+        {order.status === 'processing' && (
           <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => handleAction('ship')}>
             <Icon name="truck-delivery" size={22} color="#ffffff" />
             <Text style={styles.secondaryActionText}>Bắt đầu giao</Text>
           </TouchableOpacity>
         )}
-        {(order.status === 'in_progress' || order.status === 'in_transit' || order.status === 'shipped') && (
+        {(order.status === 'shipped' || order.status === 'in_progress' || order.status === 'in_transit') && (
           <TouchableOpacity style={styles.primaryActionBtn} onPress={() => handleAction('complete')}>
             <Icon name="check-all" size={22} color="#ffffff" />
             <Text style={styles.primaryActionText}>Hoàn thành đơn</Text>
@@ -413,7 +413,7 @@ const OrderDetailScreen = ({ navigation, route }) => {
     switch (action) {
       case 'accept': setShowAcceptModal(true); break;
       case 'cancel': setShowCancelModal(true); break;
-      case 'ship': setDeliveryStarted(true); Alert.alert('Thành công', 'Bắt đầu giao hàng'); break;
+      case 'ship': startShipping(); break;
       case 'complete': 
         shipperService.updateOrderByShipper(order._id, { status: 'delivered' })
           .then(() => safeGoBack(navigation))
@@ -424,12 +424,42 @@ const OrderDetailScreen = ({ navigation, route }) => {
 
   const confirmAccept = async () => {
     try {
-      const resp = await shipperService.updateOrderByShipper(order._id, { status: 'shipped' });
+      // Transition from confirmed to processing when shipper accepts
+      const resp = await shipperService.updateOrderByShipper(order._id, { status: 'processing' });
       if (resp.success) {
         setShowAcceptModal(false);
+        // Refresh local UI by going back or re-fetching (here we go back to list)
         safeGoBack(navigation);
       }
-    } catch (err) { Alert.alert('Lỗi', 'Không thể nhận đơn'); }
+    } catch (err) { 
+      console.error('Accept error:', err);
+      Alert.alert('Lỗi', 'Không thể nhận đơn'); 
+    }
+  };
+
+  const startShipping = async () => {
+    try {
+      // Transition from processing to shipped when starting delivery
+      const resp = await shipperService.updateOrderByShipper(order._id, { status: 'shipped' });
+      if (resp.success) {
+        setDeliveryStarted(true);
+        Alert.alert('Thành công', 'Bạn đã bắt đầu giao hàng. Khách hàng có thể theo dõi vị trí của bạn.');
+        
+        // Trigger immediate location update if possible
+        try {
+          Geolocation.getCurrentPosition((pos) => {
+            const { latitude, longitude } = pos.coords;
+            socketService.emitLocationUpdate(latitude, longitude, order._id);
+          });
+        } catch (e) { console.log('Immediate location fail:', e); }
+
+        // Go back to refresh list or re-fetch in place
+        safeGoBack(navigation);
+      }
+    } catch (err) {
+      console.error('Ship error:', err);
+      Alert.alert('Lỗi', 'Không thể bắt đầu giao hàng');
+    }
   };
 
   // 4. Final Render logic

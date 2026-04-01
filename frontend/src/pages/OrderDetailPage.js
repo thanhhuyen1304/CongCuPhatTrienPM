@@ -8,13 +8,14 @@ import socketService from '../services/socketService';
 import { formatVND } from '../utils/currency';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
-import AdminOrderMap from '../components/AdminOrderMap';
+import AdminOrderMap from '../components/AdminOrderMap.js';
 
 const OrderDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { order, loading, error } = useSelector((state) => state.orders);
+  const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     dispatch(getOrderById(id));
@@ -86,7 +87,13 @@ const OrderDetailPage = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <button
-          onClick={() => navigate('/orders')}
+          onClick={() => {
+            if (user?.role === 'admin') {
+              navigate('/admin/orders');
+            } else {
+              navigate('/orders');
+            }
+          }}
           className="flex items-center text-blue-600 hover:text-blue-800 font-medium"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2" />
