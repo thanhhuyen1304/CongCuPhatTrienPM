@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { createOrder } from '../store/slices/orderSlice';
 import { resetCart } from '../store/slices/cartSlice';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 import { formatVND } from '../utils/currency';
 
@@ -29,9 +30,8 @@ const CheckoutPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const shippingCost = totalPrice > 500000 ? 0 : 30000;
-  const taxPrice = Math.round(totalPrice * 0.1);
-  const finalTotal = totalPrice + shippingCost + taxPrice;
+  const shippingCost = totalPrice > 500000 || totalPrice === 0 ? 0 : 30000;
+  const finalTotal = totalPrice + shippingCost;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,7 +42,7 @@ const CheckoutPage = () => {
     }
 
     setIsProcessing(true);
-    toast.loading('Processing order...', { id: 'orderProcess' });
+    toast.loading('Đang xử lý...', { id: 'orderProcess' });
 
     let lat = null;
     let lon = null;
@@ -84,17 +84,17 @@ const CheckoutPage = () => {
       .filter(part => part.length > 0);
 
     const searchQueries = [];
-    
+
     // Q1: Exactly as entered (e.g., "13/30 Le Van Viet, Hiep Phu, Ho Chi Minh")
     if (addressParts.length > 0) {
       searchQueries.push(addressParts.join(', '));
     }
-    
+
     // Q2: Strip the first part (often complex house numbers/alleys)
     if (addressParts.length > 1) {
       searchQueries.push(addressParts.slice(1).join(', '));
     }
-    
+
     // Q3: Strip first two parts (e.g., Ward, District, City)
     if (addressParts.length > 2) {
       searchQueries.push(addressParts.slice(2).join(', '));
@@ -119,11 +119,11 @@ const CheckoutPage = () => {
     // 2. Try queries sequentially until OpenStreetMap returns a valid coordinate
     for (const query of searchQueries) {
       if (!query || query.trim() === '' || query === 'Vietnam') continue;
-      
+
       try {
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=vn`;
         const geoRes = await fetch(url);
-        
+
         if (geoRes.ok) {
           const geoData = await geoRes.json();
           if (geoData && geoData.length > 0) {
@@ -136,7 +136,7 @@ const CheckoutPage = () => {
       } catch (err) {
         console.error(`Geocoding failed for query "${query}":`, err);
       }
-      
+
       // Delay slightly between queries to respect Nominatim API rate limits
       await new Promise(resolve => setTimeout(resolve, 600));
     }
@@ -164,16 +164,41 @@ const CheckoutPage = () => {
       lon = 106.7009;
     }
 
+    const shippingAddress = {
+      fullName: formData.fullName,
+      phone: formData.phone,
+      street: formData.street,
+      city: formData.city,
+      country: formData.country,
+      latitude: lat,
+      longitude: lon,
+    };
+
+    // --- VNPay: redirect to VNPay payment page ---
+    if (formData.paymentMethod === 'vnpay') {
+      try {
+        const response = await api.post('/vnpay/payment', {
+          shippingAddress,
+          note: formData.note,
+        });
+        const data = response.data;
+        if (data.success && data.url) {
+          toast.dismiss('orderProcess');
+          window.location.href = data.url;
+        } else {
+          toast.error('Không thể khởi tạo thanh toán VNPay', { id: 'orderProcess' });
+          setIsProcessing(false);
+        }
+      } catch (err) {
+        const msg = err.response?.data?.message || 'Lỗi khi kết nối máy chủ';
+        toast.error(msg, { id: 'orderProcess' });
+        setIsProcessing(false);
+      }
+      return;
+    }
+
     const orderData = {
-      shippingAddress: {
-        fullName: formData.fullName,
-        phone: formData.phone,
-        street: formData.street,
-        city: formData.city,
-        country: formData.country,
-        latitude: lat,
-        longitude: lon,
-      },
+      shippingAddress,
       paymentMethod: formData.paymentMethod,
       note: formData.note,
     };
@@ -286,27 +311,59 @@ const CheckoutPage = () => {
               </h2>
               <div className="space-y-3">
                 {[
-                  { value: 'cod', label: 'Cash on Delivery (COD)' },
-                  { value: 'bank_transfer', label: 'Bank Transfer' },
-                  { value: 'momo', label: 'MoMo Wallet' },
-                  { value: 'zalopay', label: 'ZaloPay' },
+                  {
+                    value: 'cod',
+                    label: 'Thanh toán khi nhận hàng (COD)',
+                    logo: 'https://img.icons8.com/color/48/cash-in-hand.png'
+                  },
+                  {
+                    value: 'bank_transfer',
+                    label: 'Chuyển khoản ngân hàng',
+                    logo: 'https://img.icons8.com/color/48/bank.png'
+                  },
+                  {
+                    value: 'momo',
+                    label: 'Ví MoMo',
+                    logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Transparent.png'
+                  },
+                  {
+                    value: 'vnpay',
+                    label: 'VNPay',
+                    logo: 'https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-VNPAY-QR.png'
+                  },
                 ].map((method) => (
                   <label
                     key={method.value}
-                    className={`flex items-center p-4 border rounded-lg cursor-pointer ${formData.paymentMethod === method.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                    className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${formData.paymentMethod === method.value
+                      ? 'border-blue-500 bg-blue-50 shadow-sm'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                   >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      value={method.value}
-                      checked={formData.paymentMethod === method.value}
-                      onChange={handleChange}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="ml-3 font-medium">{method.label}</span>
+                    <div className="flex items-center flex-1">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={method.value}
+                        checked={formData.paymentMethod === method.value}
+                        onChange={handleChange}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                      />
+                      <div className="ml-4 flex items-center">
+                        <img
+                          src={method.logo}
+                          alt={method.label}
+                          className="h-8 w-8 object-contain rounded-md"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://img.icons8.com/color/48/bank-cards.png';
+                          }}
+                        />
+                        <span className="ml-3 font-medium text-gray-900">{method.label}</span>
+                      </div>
+                    </div>
+                    {formData.paymentMethod === method.value && (
+                      <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                    )}
                   </label>
                 ))}
               </div>
@@ -375,10 +432,7 @@ const CheckoutPage = () => {
                   <span className="text-gray-600">Shipping</span>
                   <span>{shippingCost === 0 ? 'Free' : formatVND(shippingCost)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (10%)</span>
-                  <span>{formatVND(taxPrice)}</span>
-                </div>
+
                 <hr className="my-2" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
@@ -391,7 +445,15 @@ const CheckoutPage = () => {
                 disabled={loading || isProcessing}
                 className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
               >
-                {loading || isProcessing ? 'Placing Order...' : 'Place Order'}
+                {loading || isProcessing
+                  ? 'Đang xử lý...'
+                  : formData.paymentMethod === 'vnpay'
+                    ? 'Thanh toán qua VNPay'
+                    : formData.paymentMethod === 'momo'
+                      ? 'Thanh toán qua MoMo'
+                      : formData.paymentMethod === 'bank_transfer'
+                        ? 'Thanh toán qua ngân hàng'
+                        : 'Đặt hàng'}
               </button>
             </div>
           </div>

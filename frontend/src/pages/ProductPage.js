@@ -6,6 +6,7 @@ import { addToCart } from '../store/slices/cartSlice';
 import { addToWishlist, removeFromWishlist } from '../store/slices/wishlistSlice';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
+import { formatVND } from '../utils/currency';
 import {
   StarIcon,
   MinusIcon,
@@ -233,11 +234,11 @@ const ProductPage = () => {
           {/* Price */}
           <div className="flex items-center gap-4 mb-6">
             <span className="text-3xl font-bold text-blue-600">
-              ${product.price.toFixed(2)}
+              {formatVND(product.price)}
             </span>
             {product.comparePrice && product.comparePrice > product.price && (
               <span className="text-xl text-gray-400 line-through">
-                ${product.comparePrice.toFixed(2)}
+                {formatVND(product.comparePrice)}
               </span>
             )}
           </div>

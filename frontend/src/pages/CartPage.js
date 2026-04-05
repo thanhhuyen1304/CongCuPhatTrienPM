@@ -7,7 +7,7 @@ import {
   removeFromCart,
   clearCart,
 } from '../store/slices/cartSlice';
-import api from '../services/api';
+import { formatVND } from '../utils/currency';
 import Loading from '../components/common/Loading';
 import toast from 'react-hot-toast';
 import {
@@ -160,8 +160,8 @@ const CartPage = () => {
 
                       {/* Price */}
                       <div className="col-span-2 text-center mt-4 md:mt-0">
-                        <span className="md:hidden text-gray-500 mr-2">Price:</span>
-                        <span className="font-medium">${item.price.toFixed(2)}</span>
+                        <span className="md:hidden text-gray-500 mr-2">Giá:</span>
+                        <span className="font-medium">{formatVND(item.price)}</span>
                       </div>
 
                       {/* Quantity */}
@@ -194,7 +194,7 @@ const CartPage = () => {
                       {/* Total & Remove */}
                       <div className="col-span-2 text-right mt-4 md:mt-0">
                         <span className="font-semibold text-blue-600">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatVND(item.price * item.quantity)}
                         </span>
                         <button
                           onClick={() => handleRemoveItem(product?._id)}
@@ -237,23 +237,23 @@ const CartPage = () => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
-                <span className="font-medium">${totalPrice.toFixed(2)}</span>
+                <span className="font-medium">{formatVND(totalPrice)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Shipping</span>
+                <span className="text-gray-600">Vận chuyển</span>
                 <span className="font-medium">
-                  {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
+                  {shippingCost === 0 ? 'Miễn phí' : formatVND(shippingCost)}
                 </span>
               </div>
               {shippingCost > 0 && (
                 <p className="text-xs text-gray-500">
-                  Free shipping on orders over $500
+                  Miễn phí vận chuyển cho đơn hàng trên 500.000 ₫
                 </p>
               )}
               <hr />
               <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
-                <span className="text-blue-600">${finalTotal.toFixed(2)}</span>
+                <span>Tổng cộng</span>
+                <span className="text-blue-600">{formatVND(finalTotal)}</span>
               </div>
             </div>
 
@@ -261,34 +261,11 @@ const CartPage = () => {
               onClick={() => navigate('/checkout')}
               className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
             >
-              Thanh toán trực tiếp
+              Tiến hành thanh toán
             </button>
 
-            <button
-              onClick={async () => {
-                try {
-                  const res = await dispatch(getCart()).unwrap();
-                  // ensure cart updated
-                } catch {}
-                try {
-                  const response = await api.get('/vnpay/payment');
-                  const data = response.data;
-                  if (data.success && data.url) {
-                    window.location.href = data.url;
-                  } else {
-                    toast.error('Không thể khởi tạo thanh toán VNPay');
-                  }
-                } catch (err) {
-                  toast.error('Lỗi khi kết nối máy chủ');
-                }
-              }}
-              className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700"
-            >
-              💳 Thanh toán VNPay
-            </button>
-
-            <div className="mt-4 text-center text-sm text-gray-500">
-              <p>Chọn VNPay để thanh toán trực tuyến</p>
+            <div className="mt-4 text-center text-xs text-gray-500">
+              <p>💳 Hỗ trợ COD, chuyển khoản, MoMo, ZaloPay, VNPay</p>
             </div>
           </div>
         </div>

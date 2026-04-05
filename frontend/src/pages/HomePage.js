@@ -193,7 +193,7 @@ const HomePage = () => {
                 Free Shipping
               </h3>
               <p className="text-gray-600">
-                Free shipping on orders over $50
+                Miễn phí vận chuyển cho đơn hàng trên 1.200.000 ₫
               </p>
             </div>
             <div className="text-center p-6">

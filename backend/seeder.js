@@ -47,8 +47,8 @@ const products = [
   {
     name: 'Stylish Watch',
     description: 'A sleek and modern timepiece for every occasion. Perfect for both casual and formal wear.',
-    price: 3200000, // 3.2 million VND (converted from $129.99)
-    comparePrice: 3900000, // 3.9 million VND (converted from $159.99)
+    price: 3200000, // 3.200.000 ₫
+    comparePrice: 3900000, // 3.900.000 ₫
     stock: 50,
     brand: 'TimeMaster',
     isFeatured: true,
@@ -63,8 +63,8 @@ const products = [
   {
     name: 'Wireless Headphones',
     description: 'Immersive sound quality with ultimate comfort. Active noise cancellation and 30-hour battery life.',
-    price: 1950000, // 1.95 million VND (converted from $79.99)
-    comparePrice: 2450000, // 2.45 million VND (converted from $99.99)
+    price: 1950000, // 1.950.000 ₫
+    comparePrice: 2450000, // 2.450.000 ₫
     stock: 100,
     brand: 'SoundMax',
     isFeatured: true,
@@ -79,8 +79,8 @@ const products = [
   {
     name: 'Smart Fitness Tracker',
     description: 'Track your health and fitness goals effortlessly. Heart rate monitor, sleep tracking, and more.',
-    price: 1220000, // 1.22 million VND (converted from $49.99)
-    comparePrice: 1710000, // 1.71 million VND (converted from $69.99)
+    price: 1220000, // 1.220.000 ₫
+    comparePrice: 1710000, // 1.710.000 ₫
     stock: 75,
     brand: 'FitTech',
     isFeatured: true,
@@ -95,8 +95,8 @@ const products = [
   {
     name: 'Portable Bluetooth Speaker',
     description: 'Powerful sound in a compact, travel-friendly design. Waterproof and dustproof.',
-    price: 1460000, // 1.46 million VND (converted from $59.99)
-    comparePrice: 1950000, // 1.95 million VND (converted from $79.99)
+    price: 1460000, // 1.460.000 ₫
+    comparePrice: 1950000, // 1.950.000 ₫
     stock: 60,
     brand: 'SoundMax',
     isFeatured: true,
@@ -111,8 +111,8 @@ const products = [
   {
     name: 'Ergonomic Office Chair',
     description: 'Comfort and support for long working hours. Adjustable height and lumbar support.',
-    price: 4900000, // 4.9 million VND (converted from $199.99)
-    comparePrice: 6100000, // 6.1 million VND (converted from $249.99)
+    price: 4900000, // 4.900.000 ₫
+    comparePrice: 6100000, // 6.100.000 ₫
     stock: 30,
     brand: 'ComfortPlus',
     isFeatured: true,
@@ -127,8 +127,8 @@ const products = [
   {
     name: 'High-Performance Laptop',
     description: 'Power and speed for all your computing needs. 16GB RAM, 512GB SSD, Intel Core i7.',
-    price: 22000000, // 22 million VND (converted from $899.99)
-    comparePrice: 26900000, // 26.9 million VND (converted from $1099.99)
+    price: 22000000, // 22.000.000 ₫
+    comparePrice: 26900000, // 26.900.000 ₫
     stock: 25,
     brand: 'TechPro',
     isFeatured: true,
@@ -143,8 +143,8 @@ const products = [
   {
     name: 'Digital Camera',
     description: 'Capture stunning photos and videos with ease. 24MP sensor and 4K video recording.',
-    price: 8550000, // 8.55 million VND (converted from $349.99)
-    comparePrice: 11000000, // 11 million VND (converted from $449.99)
+    price: 8550000, // 8.550.000 ₫
+    comparePrice: 11000000, // 11.000.000 ₫
     stock: 40,
     brand: 'PhotoMax',
     isFeatured: true,
@@ -159,8 +159,8 @@ const products = [
   {
     name: 'Gaming Console',
     description: 'Unleash your gaming potential with next-gen graphics. Includes wireless controller.',
-    price: 12200000, // 12.2 million VND (converted from $499.99)
-    comparePrice: 13400000, // 13.4 million VND (converted from $549.99)
+    price: 12200000, // 12.200.000 ₫
+    comparePrice: 13400000, // 13.400.000 ₫
     stock: 35,
     brand: 'GameZone',
     isFeatured: true,
@@ -176,8 +176,8 @@ const products = [
   {
     name: 'Classic T-Shirt',
     description: 'Comfortable and stylish t-shirt perfect for everyday wear. 100% cotton.',
-    price: 730000, // 730k VND (converted from $29.99)
-    comparePrice: 980000, // 980k VND (converted from $39.99)
+    price: 730000, // 730.000 ₫
+    comparePrice: 980000, // 980.000 ₫
     stock: 200,
     brand: 'StyleWear',
     isFeatured: true,
@@ -192,8 +192,8 @@ const products = [
   {
     name: 'Denim Jeans',
     description: 'Premium quality denim jeans with perfect fit. Available in multiple colors.',
-    price: 1950000, // 1.95 million VND (converted from $79.99)
-    comparePrice: 2450000, // 2.45 million VND (converted from $99.99)
+    price: 1950000, // 1.950.000 ₫
+    comparePrice: 2450000, // 2.450.000 ₫
     stock: 150,
     brand: 'DenimCo',
     isFeatured: true,
@@ -241,8 +241,8 @@ const products = [
   {
     name: 'Decorative Pillow Set',
     description: 'Set of 4 decorative pillows with premium fabric. Machine washable.',
-    price: 59.99,
-    comparePrice: 79.99,
+    price: 1500000, // 1.500.000 ₫
+    comparePrice: 2000000, // 2.000.000 ₫
     stock: 100,
     brand: 'HomeComfort',
     isFeatured: true,
@@ -257,8 +257,8 @@ const products = [
   {
     name: 'Garden Tool Set',
     description: 'Complete garden tool set with 10 essential tools. Stainless steel construction.',
-    price: 89.99,
-    comparePrice: 119.99,
+    price: 2250000, // 2.250.000 ₫
+    comparePrice: 3000000, // 3.000.000 ₫
     stock: 60,
     brand: 'GardenPro',
     isFeatured: true,
@@ -274,8 +274,8 @@ const products = [
   {
     name: 'The Art of Programming',
     description: 'A comprehensive guide to programming concepts and best practices.',
-    price: 49.99,
-    comparePrice: 59.99,
+    price: 1250000, // 1.250.000 ₫
+    comparePrice: 1500000, // 1.500.000 ₫
     stock: 100,
     brand: 'TechBooks',
     isFeatured: true,
@@ -290,8 +290,8 @@ const products = [
   {
     name: 'Digital Marketing Mastery',
     description: 'Learn digital marketing strategies from industry experts. Practical examples included.',
-    price: 39.99,
-    comparePrice: 49.99,
+    price: 1000000, // 1.000.000 ₫
+    comparePrice: 1250000, // 1.250.000 ₫
     stock: 80,
     brand: 'BusinessBooks',
     isFeatured: true,
@@ -306,8 +306,8 @@ const products = [
   {
     name: 'Web Development Guide',
     description: 'Complete guide to modern web development with HTML, CSS, and JavaScript.',
-    price: 44.99,
-    comparePrice: 54.99,
+    price: 1125000, // 1.125.000 ₫
+    comparePrice: 1375000, // 1.375.000 ₫
     stock: 90,
     brand: 'WebBooks',
     isFeatured: true,
@@ -323,8 +323,8 @@ const products = [
   {
     name: 'Professional Yoga Mat',
     description: 'Non-slip yoga mat with carrying strap. TPE material for durability.',
-    price: 39.99,
-    comparePrice: 49.99,
+    price: 1000000, // 1.000.000 ₫
+    comparePrice: 1250000, // 1.250.000 ₫
     stock: 150,
     brand: 'FitnessGear',
     isFeatured: true,
@@ -339,8 +339,8 @@ const products = [
   {
     name: 'Running Shoes',
     description: 'Lightweight and comfortable running shoes with cushioning. For all terrains.',
-    price: 119.99,
-    comparePrice: 149.99,
+    price: 3000000, // 3.000.000 ₫
+    comparePrice: 3750000, // 3.750.000 ₫
     stock: 100,
     brand: 'RunFast',
     isFeatured: true,
@@ -355,8 +355,8 @@ const products = [
   {
     name: 'Adjustable Dumbbell Set',
     description: 'Set of adjustable dumbbells from 5lbs to 25lbs. Perfect for home gym.',
-    price: 199.99,
-    comparePrice: 249.99,
+    price: 5000000, // 5.000.000 ₫
+    comparePrice: 6250000, // 6.250.000 ₫
     stock: 50,
     brand: 'PowerFit',
     isFeatured: true,

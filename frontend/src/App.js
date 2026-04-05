@@ -21,6 +21,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import GoogleCallback from './pages/GoogleCallback';
 import ContactPage from './pages/ContactPage';
+import PaymentResultPage from './pages/PaymentResultPage';
 
 // Protected Pages
 import CheckoutPage from './pages/CheckoutPage';
@@ -85,6 +86,7 @@ function App() {
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/payment-result" element={<PaymentResultPage />} />
           
           {/* Guest Only Routes */}
           <Route element={<GuestRoute />}>

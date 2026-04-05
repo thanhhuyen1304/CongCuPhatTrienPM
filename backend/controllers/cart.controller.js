@@ -14,15 +14,26 @@ const getCart = asyncHandler(async (req, res) => {
     select: 'name slug price comparePrice images stock isActive',
   });
 
-  // Filter out inactive or deleted products
-  const validItems = cart.items.filter(
-    (item) => item.product && item.product.isActive
-  );
+  // Sync prices and filter out inactive products
+  let isChanged = false;
+  const validItems = [];
 
-  // Update cart if some items were removed
-  if (validItems.length !== cart.items.length) {
+  for (let item of cart.items) {
+    if (item.product && item.product.isActive) {
+      // Sync price if different
+      if (item.price !== item.product.price) {
+        item.price = item.product.price;
+        isChanged = true;
+      }
+      validItems.push(item);
+    } else {
+      isChanged = true; // Item removed because product is gone/inactive
+    }
+  }
+
+  if (isChanged) {
     cart.items = validItems;
-    await cart.save();
+    await cart.save(); // pre-save will also update totalItems and totalPrice
   }
 
   res.json({

@@ -40,10 +40,10 @@ const orderSchema = new mongoose.Schema(
     },
     items: [orderItemSchema],
     shippingAddress: {
-      fullName: { type: String, required: true },
-      phone: { type: String, required: true },
-      street: { type: String, required: true },
-      city: { type: String, required: true },
+      fullName: { type: String, default: '' },
+      phone: { type: String, default: '' },
+      street: { type: String, default: '' },
+      city: { type: String, default: '' },
       state: { type: String },
       zipCode: { type: String },
       country: { type: String, default: 'Vietnam' },
@@ -52,7 +52,7 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay'],
+      enum: ['cod', 'bank_transfer', 'credit_card', 'momo', 'zalopay', 'vnpay'],
       default: 'cod',
     },
     paymentStatus: {
